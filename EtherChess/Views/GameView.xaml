@@ -1,0 +1,61 @@
+<UserControl x:Class="EtherChess.Views.GameView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:EtherChess"
+             xmlns:vm="clr-namespace:EtherChess.ViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="800">
+    
+    <Grid Background="#312e2b">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Status Bar -->
+        <!-- Status Bar -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="20">
+             <TextBlock Text="{Binding Username}" Foreground="#AAAAAA" FontSize="24" Margin="0,0,20,0" FontWeight="Bold"/>
+             <TextBlock Text="{Binding StatusMessage}" Foreground="White" FontSize="24"/>
+        </StackPanel>
+
+        <!-- Chess Board -->
+        <ItemsControl Grid.Row="1" ItemsSource="{Binding Squares}" Width="600" Height="600">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Rows="8" Columns="8"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Command="{Binding Command}" CommandParameter="{Binding}"
+                            BorderThickness="0">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="#eeeed2"/> <!-- Light Square -->
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDarkSquare}" Value="True">
+                                        <Setter Property="Background" Value="#769656"/> <!-- Dark Square -->
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                        <Setter Property="Background" Value="#baca44"/> <!-- Selected -->
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsLegalMove}" Value="True">
+                                        <Setter Property="Background" Value="#f6f669"/> <!-- Legal Move Hint (Yellowish) -->
+                                        <Setter Property="Opacity" Value="0.8"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <TextBlock Text="{Binding DisplaySymbol}" 
+                                   FontSize="48" 
+                                   Foreground="{Binding Piece.IsWhite, Converter={StaticResource BooleanToColorConverter}}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Button>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</UserControl>

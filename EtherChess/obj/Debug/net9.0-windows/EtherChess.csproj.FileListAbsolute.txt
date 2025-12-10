@@ -1,0 +1,12 @@
+C:\Users\ryand\Documents\Eterium\games\EtherChess\obj\Debug\net9.0-windows\EtherChess.csproj.AssemblyReference.cache
+C:\Users\ryand\Documents\Eterium\games\EtherChess\obj\Debug\net9.0-windows\Views\MenuView.baml
+C:\Users\ryand\Documents\Eterium\games\EtherChess\obj\Debug\net9.0-windows\MainWindow.g.cs
+C:\Users\ryand\Documents\Eterium\games\EtherChess\obj\Debug\net9.0-windows\Views\GameView.g.cs
+C:\Users\ryand\Documents\Eterium\games\EtherChess\obj\Debug\net9.0-windows\Views\MainWindow.g.cs
+C:\Users\ryand\Documents\Eterium\games\EtherChess\obj\Debug\net9.0-windows\Views\MenuView.g.cs
+C:\Users\ryand\Documents\Eterium\games\EtherChess\obj\Debug\net9.0-windows\App.g.cs
+C:\Users\ryand\Documents\Eterium\games\EtherChess\obj\Debug\net9.0-windows\GeneratedInternalTypeHelper.g.cs
+C:\Users\ryand\Documents\Eterium\games\EtherChess\obj\Debug\net9.0-windows\EtherChess_MarkupCompile.cache
+C:\Users\ryand\Documents\Eterium\games\EtherChess\obj\Debug\net9.0-windows\EtherChess_MarkupCompile.lref
+C:\Users\ryand\Documents\Eterium\games\EtherChess\obj\Debug\net9.0-windows\Views\DashboardView.baml
+C:\Users\ryand\Documents\Eterium\games\EtherChess\obj\Debug\net9.0-windows\Views\DashboardView.g.cs
