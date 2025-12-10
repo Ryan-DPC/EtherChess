@@ -1,11 +1,11 @@
 {
-    "id": "ether-chess",
-    "name": "EtherChess",
-    "folderName": "EtherChess",
-    "version": "v1.0.5",
-    "description": "A strategic chess game on the Ether platform.",
-    "developer": "Ryan-DPC",
-    "genre": "Strategy",
-    "entryPoint": "EtherChess.exe",
-    "github_url": "https://github.com/Ryan-DPC/EtherChess"
+  "id": "ether-chess",
+  "name": "EtherChess",
+  "folderName": "EtherChess",
+  "version": "v1.0.6",
+  "description": "A strategic chess game on the Ether platform.",
+  "developer": "Ryan-DPC",
+  "genre": "Strategy",
+  "entryPoint": "EtherChess.exe",
+  "github_url": "https://github.com/Ryan-DPC/EtherChess"
 }
