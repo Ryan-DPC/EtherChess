@@ -3,6 +3,9 @@ on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -23,3 +26,13 @@ jobs:
       with:
         name: EtherChess-Build
         path: EtherChess.zip
+
+    - name: Create Release
+      if: github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: EtherChess.zip
+        tag_name: build-${{ github.run_number }}
+        name: Build ${{ github.run_number }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
