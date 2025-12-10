@@ -5,6 +5,7 @@
     "version": "1.0.0",
     "description": "A strategic chess game on the Ether platform.",
     "developer": "Ryan-DPC",
+    "genre": "Strategy",
     "entryPoint": "EtherChess.exe",
     "github_url": "https://github.com/Ryan-DPC/EtherChess"
 }
