@@ -1,0 +1,10 @@
+{
+    "id": "ether-chess",
+    "name": "EtherChess",
+    "folderName": "EtherChess",
+    "version": "1.0.0",
+    "description": "A strategic chess game on the Ether platform.",
+    "developer": "Ryan-DPC",
+    "entryPoint": "EtherChess.exe",
+    "github_url": "https://github.com/Ryan-DPC/EtherChess"
+}

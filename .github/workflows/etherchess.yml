@@ -17,6 +17,56 @@ jobs:
         dotnet-version: 9.0.x
     - name: Restore dependencies
       run: dotnet restore
+
+    - name: Update Metadata
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        $version = "v1.0.${{ github.run_number }}"
+        
+        # Read README.md, escape for JSON is handled by ConvertTo-Json
+        if (Test-Path README.md) {
+            $readme = Get-Content README.md -Raw
+        } else {
+            $readme = "A strategic chess game on the Ether platform."
+        }
+        
+        # Fetch collaborators
+        try {
+            $collabs = gh api repos/${{ github.repository }}/collaborators --jq '.[].login'
+            if ($collabs) {
+                if ($collabs -is [array]) {
+                    $devs = $collabs -join ", "
+                } else {
+                    $devs = $collabs
+                }
+            } else {
+                $devs = "Ryan-DPC"
+            }
+        } catch {
+            Write-Host "Could not fetch collaborators, using default."
+            $devs = "Ryan-DPC"
+        }
+
+        # Update metadata.json
+        $json = Get-Content metadata.json | ConvertFrom-Json
+        $json.version = $version
+        $json.description = $readme
+        $json.developer = $devs
+        $json | ConvertTo-Json -Depth 10 | Set-Content metadata.json
+        
+        # Commit changes
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add metadata.json
+        
+        # Only commit if there are changes
+        if ((git status --porcelain) -ne "") {
+            git commit -m "Update metadata version to $version [skip ci]"
+            git push
+        }
+
     - name: Build and Publish
       run: dotnet publish -c Release -r win-x64 --self-contained true -o dist -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 
