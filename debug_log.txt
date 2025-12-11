@@ -1,0 +1,9 @@
+11.12.2025 09:58:21: Startup Args: 
+11.12.2025 09:58:21: Env USER: 
+11.12.2025 09:58:21: Env TOKEN: NULL
+11.12.2025 10:03:24: Startup Args: --dev
+11.12.2025 10:03:24: Env USER: 
+11.12.2025 10:03:24: Env TOKEN: NULL
+11.12.2025 10:03:24: Dev mode enabled. Using dummy credentials.
+11.12.2025 10:03:24: Found User Data. Initializing ViewModel...
+11.12.2025 10:03:24: Initialized with user: DevUser, Elo: 1500

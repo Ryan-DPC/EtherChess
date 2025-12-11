@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\ryand\\Documents\\Eterium\\games\\EtherChess\\EtherChess.csproj": {}
+    "C:\\Users\\pa70iyc\\Documents\\GitHub\\EtherChess\\EtherChess.csproj": {}
   },
   "projects": {
-    "C:\\Users\\ryand\\Documents\\Eterium\\games\\EtherChess\\EtherChess.csproj": {
+    "C:\\Users\\pa70iyc\\Documents\\GitHub\\EtherChess\\EtherChess.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ryand\\Documents\\Eterium\\games\\EtherChess\\EtherChess.csproj",
+        "projectUniqueName": "C:\\Users\\pa70iyc\\Documents\\GitHub\\EtherChess\\EtherChess.csproj",
         "projectName": "EtherChess",
-        "projectPath": "C:\\Users\\ryand\\Documents\\Eterium\\games\\EtherChess\\EtherChess.csproj",
-        "packagesPath": "C:\\Users\\ryand\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ryand\\Documents\\Eterium\\games\\EtherChess\\obj\\",
+        "projectPath": "C:\\Users\\pa70iyc\\Documents\\GitHub\\EtherChess\\EtherChess.csproj",
+        "packagesPath": "C:\\Users\\pa70iyc\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\pa70iyc\\Documents\\GitHub\\EtherChess\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\ryand\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\pa70iyc\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -26,6 +26,7 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -73,15 +74,15 @@
           "downloadDependencies": [
             {
               "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-              "version": "[9.0.11, 9.0.11]"
+              "version": "[9.0.7, 9.0.7]"
             },
             {
               "name": "Microsoft.NETCore.App.Runtime.win-x64",
-              "version": "[9.0.11, 9.0.11]"
+              "version": "[9.0.7, 9.0.7]"
             },
             {
               "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
-              "version": "[9.0.11, 9.0.11]"
+              "version": "[9.0.7, 9.0.7]"
             }
           ],
           "frameworkReferences": {
@@ -92,7 +93,7 @@
               "privateAssets": "none"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.308/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.302/PortableRuntimeIdentifierGraph.json"
         }
       },
       "runtimes": {

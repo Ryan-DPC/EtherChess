@@ -32,12 +32,22 @@ public partial class App : Application
         Log($"Env TOKEN: {(string.IsNullOrEmpty(token) ? "NULL" : "PRESENT")}");
 
         // Fallback to args if env vars are missing
+        bool isDev = false;
         for (int i = 0; i < e.Args.Length; i++)
         {
             if (string.IsNullOrEmpty(userJson) && e.Args[i] == "--user" && i + 1 < e.Args.Length)
                 userJson = e.Args[i + 1];
             if (string.IsNullOrEmpty(token) && e.Args[i] == "--token" && i + 1 < e.Args.Length)
                 token = e.Args[i + 1];
+            if (e.Args[i] == "--dev")
+                isDev = true;
+        }
+
+        if (isDev && (string.IsNullOrEmpty(userJson) || string.IsNullOrEmpty(token)))
+        {
+            Log("Dev mode enabled. Using dummy credentials.");
+            userJson = "{\"username\": \"DevUser\", \"elo\": 1500}";
+            token = "dev-token";
         }
 
         var mainWindow = new EtherChess.Views.MainWindow();
