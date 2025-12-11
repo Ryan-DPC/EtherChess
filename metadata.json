@@ -2,7 +2,7 @@
   "id": "ether-chess",
   "name": "EtherChess",
   "folderName": "EtherChess",
-  "version": "v1.0.7",
+  "version": "v1.0.8",
   "description": "A strategic chess game on the Ether platform.",
   "developer": "Ryan-DPC",
   "is_multiplayer": true,
