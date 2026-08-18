@@ -3,9 +3,9 @@ using CommunityToolkit.Mvvm.Input;
 using EtherChess.Models;
 using EtherChess.Engine;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows;
 
 namespace EtherChess.ViewModels;
 
@@ -14,6 +14,7 @@ public partial class GameViewModel : ObservableObject
     private readonly Board _board;
     private readonly ChessAI _ai;
     private readonly bool _isVsAI;
+    private readonly object _boardLock = new();
 
     [ObservableProperty]
     private ObservableCollection<SquareViewModel> _squares;
@@ -27,10 +28,16 @@ public partial class GameViewModel : ObservableObject
     private SquareViewModel? _selectedSquare;
 
     [ObservableProperty]
-    private string _username;
+    private string _username = string.Empty;
 
     [ObservableProperty]
     private ChessAI.Difficulty _difficulty = ChessAI.Difficulty.Medium;
+
+    [ObservableProperty]
+    private bool _isBusy;
+
+    [ObservableProperty]
+    private bool _isGameOver;
 
     public GameViewModel(string username, bool isVsAI = true, ChessAI.Difficulty difficulty = ChessAI.Difficulty.Medium)
     {
@@ -53,14 +60,19 @@ public partial class GameViewModel : ObservableObject
             {
                 var piece = _board.GetPiece(r, c);
                 var square = new SquareViewModel(r, c, piece);
-                square.Command = new RelayCommand<SquareViewModel>(OnSquareClick);
+                square.Command = new RelayCommand<SquareViewModel?>(OnSquareClick);
                 Squares.Add(square);
             }
         }
     }
 
-    private async void OnSquareClick(SquareViewModel clickedSquare)
+    private async void OnSquareClick(SquareViewModel? clickedSquare)
     {
+        if (clickedSquare is null || IsBusy || IsGameOver)
+        {
+            return;
+        }
+
         if (_selectedSquare == null)
         {
             // Select piece
@@ -81,20 +93,44 @@ public partial class GameViewModel : ObservableObject
             else
             {
                 // Try move
-                var move = new Move(_selectedSquare.Row, _selectedSquare.Col, clickedSquare.Row, clickedSquare.Col);
-                var validMoves = MoveGenerator.GenerateLegalMoves(_board);
-                
-                var validMove = validMoves.FirstOrDefault(m => m.FromRow == move.FromRow && m.FromCol == move.FromCol && m.ToRow == move.ToRow && m.ToCol == move.ToCol);
+                var candidateMove = new Move(_selectedSquare.Row, _selectedSquare.Col, clickedSquare.Row, clickedSquare.Col);
+                List<Move> matchingMoves;
 
-                if (validMove.FromRow != 0 || validMove.ToRow != 0 || validMove.FromCol != 0 || validMove.ToCol != 0) // Struct default check
+                lock (_boardLock)
                 {
-                    // Execute Move
-                    _board.MakeMove(validMove);
+                    matchingMoves = MoveGenerator
+                        .GenerateLegalMoves(_board)
+                        .Where(m =>
+                            m.FromRow == candidateMove.FromRow &&
+                            m.FromCol == candidateMove.FromCol &&
+                            m.ToRow == candidateMove.ToRow &&
+                            m.ToCol == candidateMove.ToCol)
+                        .ToList();
+                }
+
+                if (matchingMoves.Count > 0)
+                {
+                    // Prefer queen promotion until a promotion picker is added.
+                    var selectedMove = matchingMoves.FirstOrDefault(m => m.Promotion == PieceType.Queen, matchingMoves[0]);
+                    var resolvedMove = selectedMove.Promotion == PieceType.None
+                        ? selectedMove
+                        : new Move(
+                            selectedMove.FromRow,
+                            selectedMove.FromCol,
+                            selectedMove.ToRow,
+                            selectedMove.ToCol,
+                            PieceType.Queen);
+
+                    lock (_boardLock)
+                    {
+                        _board.MakeMove(resolvedMove);
+                    }
+
                     RefreshBoard();
                     Deselect();
                     UpdateStatus();
 
-                    if (_isVsAI && _board.Turn == PieceColor.Black)
+                    if (_isVsAI && !IsGameOver && IsBlackTurn())
                     {
                         await PerformAIMove();
                     }
@@ -114,7 +150,12 @@ public partial class GameViewModel : ObservableObject
 
     private void HighlightLegalMoves(SquareViewModel startSquare)
     {
-        var moves = MoveGenerator.GenerateLegalMoves(_board);
+        List<Move> moves;
+        lock (_boardLock)
+        {
+            moves = MoveGenerator.GenerateLegalMoves(_board);
+        }
+
         foreach (var move in moves)
         {
             if (move.FromRow == startSquare.Row && move.FromCol == startSquare.Col)
@@ -137,33 +178,83 @@ public partial class GameViewModel : ObservableObject
 
     private void RefreshBoard()
     {
-        foreach (var square in Squares)
+        lock (_boardLock)
         {
-            square.Piece = _board.GetPiece(square.Row, square.Col);
+            foreach (var square in Squares)
+            {
+                square.Piece = _board.GetPiece(square.Row, square.Col);
+            }
         }
     }
 
     private void UpdateStatus()
     {
-        IsWhiteTurn = _board.Turn == PieceColor.White;
-        StatusMessage = IsWhiteTurn ? "White's Turn" : "Black's Turn";
+        PieceColor turn;
+        bool inCheck;
+        bool hasMoves;
+
+        lock (_boardLock)
+        {
+            turn = _board.Turn;
+            inCheck = _board.IsInCheck(turn);
+            hasMoves = MoveGenerator.GenerateLegalMoves(_board).Count > 0;
+        }
+
+        IsWhiteTurn = turn == PieceColor.White;
+        IsGameOver = !hasMoves;
+
+        if (!hasMoves)
+        {
+            if (inCheck)
+            {
+                StatusMessage = IsWhiteTurn ? "Checkmate - Black wins" : "Checkmate - White wins";
+            }
+            else
+            {
+                StatusMessage = "Stalemate";
+            }
+
+            return;
+        }
+
+        StatusMessage = inCheck
+            ? (IsWhiteTurn ? "White to move - Check" : "Black to move - Check")
+            : (IsWhiteTurn ? "White's Turn" : "Black's Turn");
     }
 
     private async Task PerformAIMove()
     {
+        IsBusy = true;
         StatusMessage = "AI Thinking...";
         await Task.Delay(100); // UI Refresh
-        
-        await Task.Run(() =>
+
+        Board boardSnapshot;
+        lock (_boardLock)
         {
-            var bestMove = _ai.GetBestMove(_board, Difficulty);
-            Application.Current.Dispatcher.Invoke(() =>
+            boardSnapshot = _board.Clone();
+        }
+
+        var bestMove = await Task.Run(() => _ai.GetBestMove(boardSnapshot, Difficulty));
+
+        lock (_boardLock)
+        {
+            if (!IsGameOver && _board.Turn == PieceColor.Black)
             {
                 _board.MakeMove(bestMove);
-                RefreshBoard();
-                UpdateStatus();
-            });
-        });
+            }
+        }
+
+        RefreshBoard();
+        UpdateStatus();
+        IsBusy = false;
+    }
+
+    private bool IsBlackTurn()
+    {
+        lock (_boardLock)
+        {
+            return _board.Turn == PieceColor.Black;
+        }
     }
 }
 
@@ -184,7 +275,7 @@ public partial class SquareViewModel : ObservableObject
 
     public bool IsDarkSquare => (Row + Col) % 2 != 0;
 
-    public RelayCommand<SquareViewModel> Command { get; set; }
+    public RelayCommand<SquareViewModel?>? Command { get; set; }
 
     public string DisplaySymbol
     {

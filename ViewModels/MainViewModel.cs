@@ -15,6 +15,11 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private int _elo = 1200;
 
+    [ObservableProperty]
+    private bool _isAuthenticated;
+
+    public string? AuthToken { get; private set; }
+
     public MainViewModel()
     {
         // Start with Dashboard
@@ -29,6 +34,9 @@ public partial class MainViewModel : ObservableObject
 
     public void Initialize(string userJson, string token)
     {
+        AuthToken = token;
+        IsAuthenticated = !string.IsNullOrWhiteSpace(token);
+
         try 
         {
             using (var doc = System.Text.Json.JsonDocument.Parse(userJson))

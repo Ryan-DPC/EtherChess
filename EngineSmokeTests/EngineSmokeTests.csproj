@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Models\Board.cs" Link="Models\Board.cs" />
+    <Compile Include="..\Models\Move.cs" Link="Models\Move.cs" />
+    <Compile Include="..\Models\Piece.cs" Link="Models\Piece.cs" />
+    <Compile Include="..\Engine\MoveGenerator.cs" Link="Engine\MoveGenerator.cs" />
+    <Compile Include="..\Engine\ChessAI.cs" Link="Engine\ChessAI.cs" />
+  </ItemGroup>
+</Project>

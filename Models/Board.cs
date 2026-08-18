@@ -71,12 +71,26 @@ public class Board
     {
         var piece = Grid[move.FromRow, move.FromCol];
         var target = Grid[move.ToRow, move.ToCol];
+        bool isEnPassantCapture = piece.Type == PieceType.Pawn &&
+            EnPassantTarget.HasValue &&
+            move.ToRow == EnPassantTarget.Value.Row &&
+            move.ToCol == EnPassantTarget.Value.Col &&
+            target.IsEmpty;
 
         // Capture or Pawn Move resets halfmove clock
-        if (piece.Type == PieceType.Pawn || !target.IsEmpty)
+        if (piece.Type == PieceType.Pawn || !target.IsEmpty || isEnPassantCapture)
             HalfMoveClock = 0;
         else
             HalfMoveClock++;
+
+        UpdateCastlingRightsBeforeMove(move, piece, target);
+
+        // Handle En Passant Capture before moving the piece onto the target square.
+        if (isEnPassantCapture)
+        {
+            int captureRow = move.FromRow; // The pawn being captured is on the same rank as the start
+            Grid[captureRow, move.ToCol] = Piece.None;
+        }
 
         // Move piece
         Grid[move.ToRow, move.ToCol] = piece;
@@ -105,14 +119,6 @@ public class Board
             }
         }
 
-        // Handle En Passant Capture
-        if (piece.Type == PieceType.Pawn && EnPassantTarget.HasValue && 
-            move.ToRow == EnPassantTarget.Value.Row && move.ToCol == EnPassantTarget.Value.Col)
-        {
-            int captureRow = move.FromRow; // The pawn being captured is on the same rank as the start
-            Grid[captureRow, move.ToCol] = Piece.None;
-        }
-
         // Set En Passant Target
         EnPassantTarget = null;
         if (piece.Type == PieceType.Pawn && Math.Abs(move.ToRow - move.FromRow) == 2)
@@ -124,6 +130,47 @@ public class Board
         if (Turn == PieceColor.Black)
             FullMoveNumber++;
         Turn = Turn == PieceColor.White ? PieceColor.Black : PieceColor.White;
+    }
+
+    private void UpdateCastlingRightsBeforeMove(Move move, Piece piece, Piece target)
+    {
+        if (piece.Type == PieceType.King)
+        {
+            if (piece.Color == PieceColor.White)
+            {
+                CanCastleWhiteKingSide = false;
+                CanCastleWhiteQueenSide = false;
+            }
+            else if (piece.Color == PieceColor.Black)
+            {
+                CanCastleBlackKingSide = false;
+                CanCastleBlackQueenSide = false;
+            }
+        }
+
+        if (piece.Type == PieceType.Rook)
+        {
+            DisableCastlingRightForRookSquare(move.FromRow, move.FromCol, piece.Color);
+        }
+
+        if (target.Type == PieceType.Rook)
+        {
+            DisableCastlingRightForRookSquare(move.ToRow, move.ToCol, target.Color);
+        }
+    }
+
+    private void DisableCastlingRightForRookSquare(int row, int col, PieceColor color)
+    {
+        if (color == PieceColor.White && row == 7)
+        {
+            if (col == 0) CanCastleWhiteQueenSide = false;
+            if (col == 7) CanCastleWhiteKingSide = false;
+        }
+        else if (color == PieceColor.Black && row == 0)
+        {
+            if (col == 0) CanCastleBlackQueenSide = false;
+            if (col == 7) CanCastleBlackKingSide = false;
+        }
     }
     public bool IsInCheck(PieceColor color)
     {

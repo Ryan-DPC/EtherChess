@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System;
 using EtherChess.Engine;
+using System.Windows;
 
 namespace EtherChess.ViewModels;
 
@@ -48,7 +49,21 @@ public partial class DashboardViewModel : ObservableObject
     [RelayCommand]
     private void PlayMultiplayer()
     {
-        // Placeholder
+        MessageBox.Show(
+            "Le mode multijoueur n'est pas encore disponible dans cette version. Utilisez la partie contre l'IA en attendant.",
+            "EtherChess",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
+    [RelayCommand]
+    private void ShowPuzzlesComingSoon()
+    {
+        MessageBox.Show(
+            "Les puzzles arriveront dans une prochaine version.",
+            "EtherChess",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
     }
 }
 

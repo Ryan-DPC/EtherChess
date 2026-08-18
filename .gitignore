@@ -1,55 +1,32 @@
-# Dependencies
-node_modules/
-.pnp
-.pnp.js
-
-# Testing
-coverage/
-
-# Production
-build/
+# Build outputs
+bin/
+obj/
 dist/
-dist-electron/
+build/
 out/
+TestResults/
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-
-# IDEs
+# User- and machine-specific files
+*.user
+*.suo
+*.userprefs
+.vs/
 .idea/
 .vscode/
-*.swp
-*.swo
-*.sublime-workspace
 
-# OS
-.DS_Store
-Thumbs.db
-Desktop.ini
-
-# Logs
-logs
+# Logs and generated diagnostics
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+debug_log.txt
+build_log.txt
 
 # Temporary files
 tmp/
 temp/
-test_download.zip
+*.tmp
+*.swp
+*.swo
 
-# TypeScript
-*.tsbuildinfo
-
-# Optional eslint cache
-.eslintcache
-
-# Electron
-release/
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini

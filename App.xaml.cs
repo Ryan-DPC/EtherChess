@@ -1,6 +1,4 @@
-﻿using System.Configuration;
-using System.Data;
-using System.Windows;
+﻿using System.Windows;
 
 namespace EtherChess;
 
@@ -9,26 +7,20 @@ namespace EtherChess;
 /// </summary>
 public partial class App : Application
 {
+    public App()
+    {
+        InitializeComponent();
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        // Manually load resources since InitializeComponent is acting up
-        try 
-        {
-            this.Resources.Add("BooleanToColorConverter", new EtherChess.Converters.BooleanToColorConverter());
-            this.Resources.Add("CountToVisibilityConverter", new EtherChess.Converters.CountToVisibilityConverter());
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[EtherChess] Failed to load resources: {ex.Message}");
-        }
-
-        string userJson = Environment.GetEnvironmentVariable("ETHER_USER");
-        string token = Environment.GetEnvironmentVariable("ETHER_TOKEN");
+        string? userJson = Environment.GetEnvironmentVariable("ETHER_USER");
+        string? token = Environment.GetEnvironmentVariable("ETHER_TOKEN");
 
         Log($"Startup Args: {string.Join(" ", e.Args)}");
-        Log($"Env USER: {userJson}");
+        Log($"Env USER present: {!string.IsNullOrWhiteSpace(userJson)}");
         Log($"Env TOKEN: {(string.IsNullOrEmpty(token) ? "NULL" : "PRESENT")}");
 
         // Fallback to args if env vars are missing

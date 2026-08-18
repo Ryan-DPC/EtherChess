@@ -15,7 +15,6 @@
         </Grid.RowDefinitions>
 
         <!-- Status Bar -->
-        <!-- Status Bar -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="20">
              <TextBlock Text="{Binding Username}" Foreground="#AAAAAA" FontSize="24" Margin="0,0,20,0" FontWeight="Bold"/>
              <TextBlock Text="{Binding StatusMessage}" Foreground="White" FontSize="24"/>

@@ -7,13 +7,13 @@ namespace EtherChess.Network;
 
 public class NetworkClient
 {
-    private SocketIOClient.SocketIO _client;
-    private string _serverUrl;
-    private string _token;
+    private readonly SocketIOClient.SocketIO _client;
+    private readonly string _serverUrl;
+    private readonly string _token;
 
-    public event Action<string> OnMatchFound;
-    public event Action<Move> OnOpponentMove;
-    public event Action<string> OnGameEnd;
+    public event Action<string>? OnMatchFound;
+    public event Action<Move>? OnOpponentMove;
+    public event Action<string>? OnGameEnd;
 
     public bool IsConnected => _client?.Connected ?? false;
 
@@ -23,9 +23,10 @@ public class NetworkClient
         _token = token;
         _client = new SocketIOClient.SocketIO(_serverUrl);
 
-        _client.OnConnected += async (sender, e) =>
+        _client.OnConnected += (sender, e) =>
         {
             Console.WriteLine("Connected to server");
+            return Task.CompletedTask;
         };
 
         _client.On("match_found", response =>

@@ -176,9 +176,64 @@ public static class MoveGenerator
             }
         }
 
-        // Castling (Basic check, needs safety check later)
-        // This is pseudo-legal generation, validation happens later
+        if (board.IsInCheck(piece.Color))
+        {
+            return;
+        }
+
+        if (piece.IsWhite)
+        {
+            TryAddCastle(board, r, c, 6, new[] { 5, 6 }, PieceColor.Black, board.CanCastleWhiteKingSide, 7, moves);
+            TryAddCastle(board, r, c, 2, new[] { 3, 2, 1 }, PieceColor.Black, board.CanCastleWhiteQueenSide, 0, moves);
+        }
+        else
+        {
+            TryAddCastle(board, r, c, 6, new[] { 5, 6 }, PieceColor.White, board.CanCastleBlackKingSide, 7, moves);
+            TryAddCastle(board, r, c, 2, new[] { 3, 2, 1 }, PieceColor.White, board.CanCastleBlackQueenSide, 0, moves);
+        }
     }
 
     private static bool IsValid(int r, int c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+
+    private static void TryAddCastle(
+        Board board,
+        int row,
+        int kingCol,
+        int targetCol,
+        int[] emptySquares,
+        PieceColor attackerColor,
+        bool canCastle,
+        int rookCol,
+        List<Move> moves)
+    {
+        if (!canCastle)
+        {
+            return;
+        }
+
+        var rook = board.GetPiece(row, rookCol);
+        if (rook.Type != PieceType.Rook || rook.Color != board.Turn)
+        {
+            return;
+        }
+
+        foreach (int col in emptySquares)
+        {
+            if (!board.GetPiece(row, col).IsEmpty)
+            {
+                return;
+            }
+        }
+
+        int step = targetCol > kingCol ? 1 : -1;
+        for (int col = kingCol + step; col != targetCol + step; col += step)
+        {
+            if (board.IsSquareAttacked(row, col, attackerColor))
+            {
+                return;
+            }
+        }
+
+        moves.Add(new Move(row, kingCol, row, targetCol));
+    }
 }
