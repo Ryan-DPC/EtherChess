@@ -52,6 +52,15 @@ public partial class GameViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _latencyLabel = "";
 
+    [ObservableProperty]
+    private string _whiteName = "White";
+
+    [ObservableProperty]
+    private string _blackName = "Black";
+
+    [ObservableProperty]
+    private ObservableCollection<string> _moveHistory = new();
+
     public PieceColor LocalColor { get; }
 
     public GameViewModel(
@@ -67,6 +76,8 @@ public partial class GameViewModel : ObservableObject, IDisposable
         LocalColor = peer?.LocalColor ?? PieceColor.White;
         ColorLabel = LocalColor == PieceColor.White ? "White" : "Black";
         OpponentName = peer?.OpponentUsername ?? (_isVsAI ? $"AI ({difficulty})" : "Opponent");
+        WhiteName = LocalColor == PieceColor.White ? Username : OpponentName;
+        BlackName = LocalColor == PieceColor.Black ? Username : OpponentName;
         _board = new Board();
         _ai = new ChessAI();
         _squares = new ObservableCollection<SquareViewModel>();
@@ -150,6 +161,8 @@ public partial class GameViewModel : ObservableObject, IDisposable
                 }
 
                 RefreshBoard();
+                MarkLastMove(resolvedMove);
+                RecordMove(resolvedMove);
                 Deselect();
                 UpdateStatus();
 
@@ -196,6 +209,7 @@ public partial class GameViewModel : ObservableObject, IDisposable
             return;
         }
 
+        Move resolved = default;
         lock (_boardLock)
         {
             var matchingMoves = FindMatchingMoves(incoming);
@@ -206,7 +220,7 @@ public partial class GameViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            var resolved = incoming.Promotion != PieceType.None
+            resolved = incoming.Promotion != PieceType.None
                 ? incoming
                 : PreferQueenPromotion(matchingMoves);
             _board.MakeMove(resolved);
@@ -214,6 +228,8 @@ public partial class GameViewModel : ObservableObject, IDisposable
 
         Deselect();
         RefreshBoard();
+        MarkLastMove(resolved);
+        RecordMove(resolved);
         UpdateStatus();
     }
 
@@ -336,8 +352,35 @@ public partial class GameViewModel : ObservableObject, IDisposable
         }
 
         RefreshBoard();
+        MarkLastMove(bestMove);
+        RecordMove(bestMove);
         UpdateStatus();
         IsBusy = false;
+    }
+
+    private void MarkLastMove(Move move)
+    {
+        foreach (var square in Squares)
+        {
+            square.IsLastMove =
+                (square.Row == move.FromRow && square.Col == move.FromCol) ||
+                (square.Row == move.ToRow && square.Col == move.ToCol);
+        }
+    }
+
+    private void RecordMove(Move move)
+    {
+        static char File(int col) => (char)('a' + col);
+        static int Rank(int row) => 8 - row;
+        var san = $"{File(move.FromCol)}{Rank(move.FromRow)}{File(move.ToCol)}{Rank(move.ToRow)}";
+        if (MoveHistory.Count % 2 == 0)
+        {
+            MoveHistory.Add($"{MoveHistory.Count / 2 + 1}. {san}");
+        }
+        else
+        {
+            MoveHistory[^1] = $"{MoveHistory[^1]}   {san}";
+        }
     }
 
     private PieceColor CurrentTurn()
@@ -428,7 +471,12 @@ public partial class SquareViewModel : ObservableObject
     [ObservableProperty]
     private bool _isLegalMove;
 
+    [ObservableProperty]
+    private bool _isLastMove;
+
     public bool IsDarkSquare => (Row + Col) % 2 != 0;
+    public string FileLabel => Row == 7 ? ((char)('a' + Col)).ToString() : "";
+    public string RankLabel => Col == 0 ? (8 - Row).ToString() : "";
 
     public RelayCommand<SquareViewModel?>? Command { get; set; }
 

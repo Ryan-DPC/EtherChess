@@ -70,5 +70,13 @@ dotnet run
 - `EtherChess.Core/`: chess rules, AI, and P2P transport
 - `ViewModels/`: MVVM presentation logic
 - `Views/`: WPF views
-- `EtherChess.P2PTest/`: headless two-peer live match
+- `EtherChess.P2PTest/`: headless two-peer live match and visual TCP demo
 - `EngineSmokeTests/`: rule-level smoke tests
+
+### Visual P2P demo
+
+```bash
+dotnet run --project EtherChess.P2PTest/EtherChess.P2PTest.csproj -- --visual
+```
+
+Then open `http://127.0.0.1:5088` to watch host and guest boards stay in sync.

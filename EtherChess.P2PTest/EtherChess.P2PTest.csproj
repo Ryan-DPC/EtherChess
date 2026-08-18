@@ -9,5 +9,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EtherChess.Core\EtherChess.Core.csproj" />
+    <Content Include="wwwroot\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

@@ -3,62 +3,148 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:local="clr-namespace:EtherChess"
-             xmlns:vm="clr-namespace:EtherChess.ViewModels"
              mc:Ignorable="d"
-             d:DesignHeight="800" d:DesignWidth="800">
-    
-    <Grid Background="#312e2b">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+             d:DesignHeight="800" d:DesignWidth="1100">
 
-        <!-- Status Bar -->
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="20">
-             <TextBlock Text="{Binding Username}" Foreground="#AAAAAA" FontSize="22" Margin="0,0,8,0" FontWeight="Bold"/>
-             <TextBlock Text="vs" Foreground="#666" FontSize="22" Margin="0,0,8,0"/>
-             <TextBlock Text="{Binding OpponentName}" Foreground="#AAAAAA" FontSize="22" Margin="0,0,20,0" FontWeight="Bold"/>
-             <TextBlock Text="{Binding ColorLabel}" Foreground="#81B64C" FontSize="20" Margin="0,0,20,0"/>
-             <TextBlock Text="{Binding StatusMessage}" Foreground="White" FontSize="22"/>
-             <TextBlock Text="{Binding LatencyLabel}" Foreground="#f6f669" FontSize="16" Margin="20,4,0,0"/>
-        </StackPanel>
+    <Grid Background="#1e1c1a">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="220"/>
+        </Grid.ColumnDefinitions>
 
-        <!-- Chess Board -->
-        <ItemsControl Grid.Row="1" ItemsSource="{Binding Squares}" Width="600" Height="600">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <UniformGrid Rows="8" Columns="8"/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Button Command="{Binding Command}" CommandParameter="{Binding}"
-                            BorderThickness="0">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Background" Value="#eeeed2"/> <!-- Light Square -->
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsDarkSquare}" Value="True">
-                                        <Setter Property="Background" Value="#769656"/> <!-- Dark Square -->
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                        <Setter Property="Background" Value="#baca44"/> <!-- Selected -->
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsLegalMove}" Value="True">
-                                        <Setter Property="Background" Value="#f6f669"/> <!-- Legal Move Hint (Yellowish) -->
-                                        <Setter Property="Opacity" Value="0.8"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                        <TextBlock Text="{Binding DisplaySymbol}" 
-                                   FontSize="48" 
-                                   Foreground="{Binding Piece.IsWhite, Converter={StaticResource BooleanToColorConverter}}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Button>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <Grid Grid.Column="0" Margin="24,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="#2D2B29" CornerRadius="10" Padding="14,10" Margin="0,0,0,16">
+                <DockPanel>
+                    <Ellipse Width="12" Height="12" Fill="#81B64C" Margin="0,0,10,0" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding LatencyLabel}" Foreground="#f6f669" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="White" FontSize="18" FontWeight="SemiBold"/>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" CornerRadius="10" Padding="12,8" Margin="0,0,0,12"
+                        Background="#2D2B29" BorderThickness="2">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsWhiteTurn}" Value="False">
+                                    <Setter Property="BorderBrush" Value="#81B64C"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="♚" FontSize="22" Margin="0,0,8,0"/>
+                        <StackPanel>
+                            <TextBlock Text="{Binding BlackName}" Foreground="White" FontWeight="Bold"/>
+                            <TextBlock Text="Black" Foreground="#888" FontSize="12"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="1" Width="640" Height="640" CornerRadius="8" ClipToBounds="True"
+                        BorderBrush="#111" BorderThickness="8">
+                    <ItemsControl ItemsSource="{Binding Squares}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="8" Columns="8"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Command="{Binding Command}" CommandParameter="{Binding}"
+                                        BorderThickness="0" FontWeight="Bold">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="#f0d9b5"/>
+                                            <Setter Property="Foreground" Value="#1a1a1a"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsDarkSquare}" Value="True">
+                                                    <Setter Property="Background" Value="#b58863"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsLastMove}" Value="True">
+                                                    <Setter Property="Background" Value="#cdd26a"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter Property="Background" Value="#f6f669"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsLegalMove}" Value="True">
+                                                    <Setter Property="Background" Value="#81B64C"/>
+                                                    <Setter Property="Opacity" Value="0.92"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <Grid>
+                                        <TextBlock Text="{Binding RankLabel}" FontSize="10" Margin="3,1,0,0"
+                                                   HorizontalAlignment="Left" VerticalAlignment="Top" Opacity="0.65"
+                                                   Foreground="{Binding Piece.IsWhite, Converter={StaticResource BooleanToColorConverter}}"/>
+                                        <TextBlock Text="{Binding DisplaySymbol}" FontSize="50"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   Foreground="{Binding Piece.IsWhite, Converter={StaticResource BooleanToColorConverter}}">
+                                            <TextBlock.Effect>
+                                                <DropShadowEffect BlurRadius="6" ShadowDepth="1" Opacity="0.45"/>
+                                            </TextBlock.Effect>
+                                        </TextBlock>
+                                        <TextBlock Text="{Binding FileLabel}" FontSize="10" Margin="0,0,3,1"
+                                                   HorizontalAlignment="Right" VerticalAlignment="Bottom" Opacity="0.65"/>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+
+                <Border Grid.Row="2" CornerRadius="10" Padding="12,8" Margin="0,12,0,0"
+                        Background="#2D2B29" BorderThickness="2">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsWhiteTurn}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#81B64C"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="♔" FontSize="22" Margin="0,0,8,0" Foreground="White"/>
+                        <StackPanel>
+                            <TextBlock Text="{Binding WhiteName}" Foreground="White" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding ColorLabel}" Foreground="#81B64C" FontSize="12"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Column="1" Background="#211F1D" Padding="16">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Moves" Foreground="White" FontSize="18" FontWeight="Bold" Margin="0,0,0,12"/>
+                <TextBlock DockPanel.Dock="Bottom" Text="{Binding OpponentName, StringFormat=vs {0}}" Foreground="#888" Margin="0,12,0,0"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding MoveHistory}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" Foreground="#ddd" FontFamily="Consolas" FontSize="14" Margin="0,0,0,6"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
     </Grid>
 </UserControl>

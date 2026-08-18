@@ -11,7 +11,7 @@ public class BooleanToColorConverter : IValueConverter
     {
         if (value is bool isWhite)
         {
-            return isWhite ? Brushes.White : Brushes.Black;
+            return isWhite ? new SolidColorBrush(Color.FromRgb(0xFF, 0xF8, 0xEE)) : new SolidColorBrush(Color.FromRgb(0x1C, 0x12, 0x0C));
         }
         return Brushes.Black;
     }

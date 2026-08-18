@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EtherChess P2P Live Test</title>
+  <style>
+    :root {
+      --bg: #161412;
+      --panel: #221f1d;
+      --line: #3a3530;
+      --text: #f4efe7;
+      --muted: #9c9488;
+      --green: #81b64c;
+      --gold: #f6f669;
+      --light: #f0d9b5;
+      --dark: #b58863;
+      --last: #cdd26a;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: radial-gradient(circle at top, #2a2622 0%, var(--bg) 55%);
+      color: var(--text);
+      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+    }
+    .app {
+      min-height: 100%;
+      padding: 24px 32px 20px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+    }
+    header, footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+    .brand span.icon { color: var(--green); }
+    .status-row { display: flex; gap: 12px; align-items: center; }
+    .pill {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .pill.ok { color: var(--green); border-color: #4e7a2e; }
+    .pill.warn { color: var(--gold); }
+    .stage {
+      display: grid;
+      grid-template-columns: 1fr 220px 1fr;
+      gap: 22px;
+      align-items: center;
+    }
+    .board-wrap {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.35);
+    }
+    .player {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+    .player h2 { margin: 0; font-size: 18px; }
+    .player .meta { color: var(--muted); font-size: 12px; }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      width: min(42vw, 520px);
+      aspect-ratio: 1;
+      border: 8px solid #111;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .sq {
+      display: grid;
+      place-items: center;
+      position: relative;
+      font-size: 42px;
+      line-height: 1;
+    }
+    .sq.light { background: var(--light); }
+    .sq.dark { background: var(--dark); }
+    .sq.last { background: var(--last); }
+    .sq .coord {
+      position: absolute;
+      font-size: 10px;
+      opacity: .55;
+      font-weight: 700;
+    }
+    .sq .file { right: 4px; bottom: 2px; }
+    .sq .rank { left: 4px; top: 2px; }
+    .piece {
+      text-shadow: 0 2px 8px rgba(0,0,0,.35);
+      transform: scale(.96);
+      transition: transform 180ms ease, filter 180ms ease;
+    }
+    .sq.last .piece { transform: scale(1.08); }
+    .link {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+    .wire {
+      width: 100%;
+      height: 6px;
+      border-radius: 99px;
+      background: #3f3a34;
+      position: relative;
+      overflow: hidden;
+    }
+    .packet {
+      position: absolute;
+      top: -5px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 18px var(--green);
+      left: -20px;
+    }
+    .packet.go-right { animation: goRight 520ms ease forwards; }
+    .packet.go-left { animation: goLeft 520ms ease forwards; }
+    @keyframes goRight { from { left: -16px; } to { left: calc(100% - 4px); } }
+    @keyframes goLeft { from { left: calc(100% - 4px); } to { left: -16px; } }
+    .sync {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: .12em;
+      color: var(--muted);
+    }
+    .sync.on { color: var(--green); }
+    .log {
+      width: 100%;
+      max-height: 280px;
+      overflow: auto;
+      background: #1a1816;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: 13px/1.5 ui-monospace, Consolas, monospace;
+      color: #d9d1c5;
+    }
+    footer .title { color: var(--muted); }
+    #banner {
+      font-size: 20px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand"><span class="icon">♟️</span> EtherChess P2P</div>
+      <div class="status-row">
+        <div class="pill" id="matchPill">Waiting for peers</div>
+        <div class="pill" id="rttPill">RTT --</div>
+        <div class="pill" id="syncPill">SYNC --</div>
+      </div>
+    </header>
+    <main class="stage">
+      <section class="board-wrap">
+        <div class="player">
+          <h2 id="hostName">HOST · White</h2>
+          <div class="meta">TCP listener</div>
+        </div>
+        <div class="board" id="hostBoard"></div>
+      </section>
+      <section class="link">
+        <div class="sync" id="syncLabel">CONNECTING</div>
+        <div class="wire"><div class="packet" id="packet"></div></div>
+        <div class="log" id="log"></div>
+      </section>
+      <section class="board-wrap">
+        <div class="player">
+          <h2 id="guestName">GUEST · Black</h2>
+          <div class="meta">board flipped</div>
+        </div>
+        <div class="board" id="guestBoard"></div>
+      </section>
+    </main>
+    <footer>
+      <div id="banner">Live peer-to-peer match over TCP</div>
+      <div class="title">Host and guest must stay identical</div>
+    </footer>
+  </div>
+  <script>
+    const glyphs = {
+      K:"♔", Q:"♕", R:"♖", B:"♗", N:"♘", P:"♙",
+      k:"♚", q:"♛", r:"♜", b:"♝", n:"♞", p:"♟", " ":""
+    };
+    const hostBoard = document.getElementById("hostBoard");
+    const guestBoard = document.getElementById("guestBoard");
+    const log = document.getElementById("log");
+
+    function render(el, squares, lastFrom, lastTo, flipped) {
+      el.innerHTML = "";
+      const order = [];
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) order.push([r, c]);
+      }
+      const cells = flipped ? order.slice().reverse() : order;
+      for (const [r, c] of cells) {
+        const idx = r * 8 + c;
+        const sq = document.createElement("div");
+        const isDark = (r + c) % 2 !== 0;
+        sq.className = "sq " + (isDark ? "dark" : "light");
+        if (idx === lastFrom || idx === lastTo) sq.classList.add("last");
+        const piece = document.createElement("div");
+        piece.className = "piece";
+        piece.textContent = glyphs[squares[idx] || " "] || "";
+        if (!flipped && c === 0) {
+          const rank = document.createElement("span");
+          rank.className = "coord rank";
+          rank.textContent = 8 - r;
+          sq.appendChild(rank);
+        }
+        if (!flipped && r === 7) {
+          const file = document.createElement("span");
+          file.className = "coord file";
+          file.textContent = String.fromCharCode(97 + c);
+          sq.appendChild(file);
+        }
+        sq.appendChild(piece);
+        el.appendChild(sq);
+      }
+    }
+
+    function addLog(line) {
+      log.textContent += line + "\n";
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function fly(side) {
+      const el = document.getElementById("packet");
+      const clone = el.cloneNode(true);
+      clone.id = "packet";
+      clone.className = "packet " + (side === "white" ? "go-right" : "go-left");
+      el.replaceWith(clone);
+    }
+
+    render(hostBoard, " ".repeat(64), -1, -1, false);
+    render(guestBoard, " ".repeat(64), -1, -1, true);
+
+    const src = new EventSource("/stream");
+    src.onmessage = (evt) => {
+      const data = JSON.parse(evt.data);
+      if (data.type === "hello") {
+        document.getElementById("hostName").textContent = data.host + " · White";
+        document.getElementById("guestName").textContent = data.guest + " · Black";
+        document.getElementById("matchPill").textContent = "Peers connecting";
+        addLog("handshake started");
+      }
+      if (data.type === "connected") {
+        document.getElementById("matchPill").classList.add("ok");
+        document.getElementById("matchPill").textContent = "TCP connected";
+        document.getElementById("syncLabel").textContent = "SYNCED";
+        document.getElementById("syncLabel").classList.add("on");
+        render(hostBoard, data.hostSquares, -1, -1, false);
+        render(guestBoard, data.guestSquares, -1, -1, true);
+        addLog("host and guest boards live");
+      }
+      if (data.type === "match") {
+        document.getElementById("banner").textContent = data.title;
+        addLog("-- " + data.title + " --");
+      }
+      if (data.type === "move") {
+        fly(data.side);
+        render(hostBoard, data.hostSquares, data.from, data.to, false);
+        render(guestBoard, data.guestSquares, data.from, data.to, true);
+        document.getElementById("rttPill").textContent = "RTT " + data.latencyMs.toFixed(2) + " ms";
+        document.getElementById("syncPill").className = "pill " + (data.synced ? "ok" : "warn");
+        document.getElementById("syncPill").textContent = data.synced ? "BOARDS IDENTICAL" : "DESYNC";
+        addLog(data.ply.toString().padStart(2, " ") + ". " + data.san + "  " + data.latencyMs.toFixed(2) + " ms");
+      }
+      if (data.type === "result") {
+        document.getElementById("banner").textContent = data.message;
+        document.getElementById("matchPill").textContent = data.message;
+        addLog(data.message);
+      }
+      if (data.type === "summary") {
+        document.getElementById("rttPill").textContent = "avg " + data.avgMs.toFixed(2) + " / max " + data.maxMs.toFixed(2) + " ms";
+        addLog("avg " + data.avgMs.toFixed(2) + " ms, max " + data.maxMs.toFixed(2) + " ms");
+      }
+    };
+  </script>
+</body>
+</html>
