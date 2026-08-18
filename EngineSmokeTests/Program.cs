@@ -11,13 +11,22 @@ static void Assert(bool condition, string message)
 
 static Move? FindMove(Board board, int fromRow, int fromCol, int toRow, int toCol, PieceType promotion = PieceType.None)
 {
-    return MoveGenerator.GenerateLegalMoves(board)
+    var move = MoveGenerator.GenerateLegalMoves(board)
         .FirstOrDefault(move =>
             move.FromRow == fromRow &&
             move.FromCol == fromCol &&
             move.ToRow == toRow &&
             move.ToCol == toCol &&
             move.Promotion == promotion);
+
+    bool isMatch =
+        move.FromRow == fromRow &&
+        move.FromCol == fromCol &&
+        move.ToRow == toRow &&
+        move.ToCol == toCol &&
+        move.Promotion == promotion;
+
+    return isMatch ? move : null;
 }
 
 static Board CreateEmptyBoard(PieceColor turn)
