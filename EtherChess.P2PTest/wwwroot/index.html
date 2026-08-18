@@ -163,6 +163,18 @@
       font-size: 20px;
       font-weight: 700;
     }
+    #start {
+      appearance: none;
+      border: 0;
+      background: var(--green);
+      color: #10240a;
+      font-weight: 800;
+      font-size: 16px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    #start:disabled { opacity: .5; cursor: default; }
   </style>
 </head>
 <body>
@@ -170,7 +182,8 @@
     <header>
       <div class="brand"><span class="icon">♟️</span> EtherChess P2P</div>
       <div class="status-row">
-        <div class="pill" id="matchPill">Waiting for peers</div>
+        <button id="start">Start P2P match</button>
+        <div class="pill" id="matchPill">Ready</div>
         <div class="pill" id="rttPill">RTT --</div>
         <div class="pill" id="syncPill">SYNC --</div>
       </div>
@@ -184,7 +197,7 @@
         <div class="board" id="hostBoard"></div>
       </section>
       <section class="link">
-        <div class="sync" id="syncLabel">CONNECTING</div>
+        <div class="sync" id="syncLabel">READY</div>
         <div class="wire"><div class="packet" id="packet"></div></div>
         <div class="log" id="log"></div>
       </section>
@@ -256,11 +269,15 @@
       el.replaceWith(clone);
     }
 
-    render(hostBoard, " ".repeat(64), -1, -1, false);
-    render(guestBoard, " ".repeat(64), -1, -1, true);
+    const startSquares = "rnbqkbnrpppppppp                                PPPPPPPPRNBQKBNR";
+    render(hostBoard, startSquares, -1, -1, false);
+    render(guestBoard, startSquares, -1, -1, true);
 
-    const src = new EventSource("/stream");
-    src.onmessage = (evt) => {
+    document.getElementById("start").onclick = () => {
+      document.getElementById("start").disabled = true;
+      document.getElementById("matchPill").textContent = "Connecting peers";
+      const src = new EventSource("/stream");
+      src.onmessage = (evt) => {
       const data = JSON.parse(evt.data);
       if (data.type === "hello") {
         document.getElementById("hostName").textContent = data.host + " · White";
@@ -299,6 +316,7 @@
         document.getElementById("rttPill").textContent = "avg " + data.avgMs.toFixed(2) + " / max " + data.maxMs.toFixed(2) + " ms";
         addLog("avg " + data.avgMs.toFixed(2) + " ms, max " + data.maxMs.toFixed(2) + " ms");
       }
+      };
     };
   </script>
 </body>

@@ -60,7 +60,7 @@ internal static class MatchRunner
             Opening,
             expectCheckmate: false,
             latencies,
-            delayMs: 850,
+            delayMs: 900,
             onEvent: emit);
 
         await Task.Delay(1200);
@@ -70,7 +70,7 @@ internal static class MatchRunner
             ScholarsMate,
             expectCheckmate: true,
             latencies,
-            delayMs: 850,
+            delayMs: 900,
             onEvent: emit);
 
         var avg = latencies.Average();
