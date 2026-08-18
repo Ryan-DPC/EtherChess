@@ -10,12 +10,26 @@ EtherChess is a WPF chess client for the Ether platform.
   - castling
   - en passant
   - pawn promotion
+- Peer-to-peer multiplayer over TCP
 - Ether user bootstrap through `ETHER_USER` and `ETHER_TOKEN`
 - Local development mode with `--dev`
 
-## Multiplayer status
+## Multiplayer
 
-Multiplayer networking is not enabled in the current release build yet. The UI keeps the entry point visible, but it shows an informational placeholder instead of attempting a broken connection flow.
+Two players can start a direct TCP game without a central server.
+
+- **Host**: choose a port and wait for an opponent
+- **Join**: enter the host IP and port
+
+The host plays White. Moves are sent as newline-delimited JSON, acknowledged for round-trip timing, and rejected if they are illegal on the receiver board.
+
+### Headless P2P check
+
+```bash
+dotnet run --project EtherChess.P2PTest/EtherChess.P2PTest.csproj
+```
+
+This launches two local peers, plays a live opening including castling, then a Scholar's mate, and asserts that both boards stay in sync.
 
 ## Running locally
 
@@ -53,8 +67,8 @@ dotnet run
 
 ## Project structure
 
-- `Models/`: chess board state and move model
-- `Engine/`: move generation and AI
+- `EtherChess.Core/`: chess rules, AI, and P2P transport
 - `ViewModels/`: MVVM presentation logic
 - `Views/`: WPF views
-- `Network/`: future multiplayer client
+- `EtherChess.P2PTest/`: headless two-peer live match
+- `EngineSmokeTests/`: rule-level smoke tests

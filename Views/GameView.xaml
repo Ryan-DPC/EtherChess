@@ -16,8 +16,12 @@
 
         <!-- Status Bar -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="20">
-             <TextBlock Text="{Binding Username}" Foreground="#AAAAAA" FontSize="24" Margin="0,0,20,0" FontWeight="Bold"/>
-             <TextBlock Text="{Binding StatusMessage}" Foreground="White" FontSize="24"/>
+             <TextBlock Text="{Binding Username}" Foreground="#AAAAAA" FontSize="22" Margin="0,0,8,0" FontWeight="Bold"/>
+             <TextBlock Text="vs" Foreground="#666" FontSize="22" Margin="0,0,8,0"/>
+             <TextBlock Text="{Binding OpponentName}" Foreground="#AAAAAA" FontSize="22" Margin="0,0,20,0" FontWeight="Bold"/>
+             <TextBlock Text="{Binding ColorLabel}" Foreground="#81B64C" FontSize="20" Margin="0,0,20,0"/>
+             <TextBlock Text="{Binding StatusMessage}" Foreground="White" FontSize="22"/>
+             <TextBlock Text="{Binding LatencyLabel}" Foreground="#f6f669" FontSize="16" Margin="20,4,0,0"/>
         </StackPanel>
 
         <!-- Chess Board -->

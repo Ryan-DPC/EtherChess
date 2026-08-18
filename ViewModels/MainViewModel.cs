@@ -6,7 +6,7 @@ namespace EtherChess.ViewModels;
 public partial class MainViewModel : ObservableObject
 {
     [ObservableProperty]
-    private object _currentView;
+    private object _currentView = null!;
 
     [ObservableProperty]
     private string _username = "Guest";
@@ -28,6 +28,15 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     public void NavigateToDashboard()
     {
+        if (CurrentView is GameViewModel game)
+        {
+            game.Dispose();
+        }
+        else if (CurrentView is DashboardViewModel dashboard)
+        {
+            dashboard.DisposeLobby();
+        }
+
         CurrentView = new DashboardViewModel(this);
     }
 

@@ -5,7 +5,7 @@
   "version": "v1.0.8",
   "description": "A strategic chess game on the Ether platform.",
   "developer": "Ryan-DPC",
-  "is_multiplayer": false,
+  "is_multiplayer": true,
   "price": 0,
   "genre": "Strategy",
   "entryPoint": "EtherChess.exe",

@@ -16,7 +16,12 @@ jobs:
       with:
         dotnet-version: 9.0.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore EtherChess.sln
+
+    - name: Run engine and P2P checks
+      run: |
+        dotnet run --project EngineSmokeTests/EngineSmokeTests.csproj -c Release
+        dotnet run --project EtherChess.P2PTest/EtherChess.P2PTest.csproj -c Release
 
     - name: Update Metadata
       shell: pwsh
@@ -68,7 +73,7 @@ jobs:
         }
 
     - name: Build and Publish
-      run: dotnet publish -c Release -r win-x64 --self-contained true -o dist -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+      run: dotnet publish EtherChess.csproj -c Release -r win-x64 --self-contained true -o dist -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
 
     - name: Zip Build Output
       run: Compress-Archive -Path dist/* -DestinationPath EtherChess.zip

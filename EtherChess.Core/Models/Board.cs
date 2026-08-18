@@ -270,4 +270,33 @@ public class Board
         
         return newBoard;
     }
+
+    public string GetPositionKey()
+    {
+        var sb = new System.Text.StringBuilder(80);
+        for (int r = 0; r < 8; r++)
+        {
+            for (int c = 0; c < 8; c++)
+            {
+                sb.Append(Grid[r, c].GetFenChar());
+            }
+        }
+
+        sb.Append(Turn == PieceColor.White ? 'w' : 'b');
+        sb.Append(CanCastleWhiteKingSide ? 'K' : '-');
+        sb.Append(CanCastleWhiteQueenSide ? 'Q' : '-');
+        sb.Append(CanCastleBlackKingSide ? 'k' : '-');
+        sb.Append(CanCastleBlackQueenSide ? 'q' : '-');
+        if (EnPassantTarget.HasValue)
+        {
+            sb.Append(EnPassantTarget.Value.Row);
+            sb.Append(EnPassantTarget.Value.Col);
+        }
+        else
+        {
+            sb.Append('-');
+        }
+
+        return sb.ToString();
+    }
 }

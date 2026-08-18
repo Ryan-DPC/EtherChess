@@ -1,20 +1,24 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using EtherChess.Models;
 using EtherChess.Engine;
-using System.Collections.ObjectModel;
+using EtherChess.Models;
+using EtherChess.Network;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace EtherChess.ViewModels;
 
-public partial class GameViewModel : ObservableObject
+public partial class GameViewModel : ObservableObject, IDisposable
 {
     private readonly Board _board;
     private readonly ChessAI _ai;
     private readonly bool _isVsAI;
+    private readonly PeerSession? _peer;
     private readonly object _boardLock = new();
+    private bool _disposed;
 
     [ObservableProperty]
     private ObservableCollection<SquareViewModel> _squares;
@@ -31,6 +35,12 @@ public partial class GameViewModel : ObservableObject
     private string _username = string.Empty;
 
     [ObservableProperty]
+    private string _opponentName = "AI";
+
+    [ObservableProperty]
+    private string _colorLabel = "White";
+
+    [ObservableProperty]
     private ChessAI.Difficulty _difficulty = ChessAI.Difficulty.Medium;
 
     [ObservableProperty]
@@ -39,16 +49,44 @@ public partial class GameViewModel : ObservableObject
     [ObservableProperty]
     private bool _isGameOver;
 
-    public GameViewModel(string username, bool isVsAI = true, ChessAI.Difficulty difficulty = ChessAI.Difficulty.Medium)
+    [ObservableProperty]
+    private string _latencyLabel = "";
+
+    public PieceColor LocalColor { get; }
+
+    public GameViewModel(
+        string username,
+        bool isVsAI = true,
+        ChessAI.Difficulty difficulty = ChessAI.Difficulty.Medium,
+        PeerSession? peer = null)
     {
         Username = username;
-        _isVsAI = isVsAI;
+        _peer = peer;
+        _isVsAI = isVsAI && peer is null;
         Difficulty = difficulty;
+        LocalColor = peer?.LocalColor ?? PieceColor.White;
+        ColorLabel = LocalColor == PieceColor.White ? "White" : "Black";
+        OpponentName = peer?.OpponentUsername ?? (_isVsAI ? $"AI ({difficulty})" : "Opponent");
         _board = new Board();
         _ai = new ChessAI();
         _squares = new ObservableCollection<SquareViewModel>();
         InitializeBoard();
+        SubscribePeer();
         UpdateStatus();
+    }
+
+    private void SubscribePeer()
+    {
+        if (_peer is null)
+        {
+            return;
+        }
+
+        _peer.MoveReceived += OnPeerMove;
+        _peer.GameEnded += OnPeerGameEnded;
+        _peer.Disconnected += OnPeerDisconnected;
+        _peer.MoveAcknowledgedMs += OnPeerLatency;
+        _ = _peer.SendPingAsync();
     }
 
     private void InitializeBoard()
@@ -73,11 +111,20 @@ public partial class GameViewModel : ObservableObject
             return;
         }
 
+        if (_peer is not null && CurrentTurn() != LocalColor)
+        {
+            return;
+        }
+
         if (_selectedSquare == null)
         {
-            // Select piece
-            if (!clickedSquare.Piece.IsEmpty && clickedSquare.Piece.Color == _board.Turn)
+            if (!clickedSquare.Piece.IsEmpty && clickedSquare.Piece.Color == CurrentTurn())
             {
+                if (_peer is not null && clickedSquare.Piece.Color != LocalColor)
+                {
+                    return;
+                }
+
                 _selectedSquare = clickedSquare;
                 _selectedSquare.IsSelected = true;
                 HighlightLegalMoves(_selectedSquare);
@@ -85,67 +132,110 @@ public partial class GameViewModel : ObservableObject
         }
         else
         {
-            // Move or Deselect
             if (clickedSquare == _selectedSquare)
             {
                 Deselect();
             }
             else
             {
-                // Try move
                 var candidateMove = new Move(_selectedSquare.Row, _selectedSquare.Col, clickedSquare.Row, clickedSquare.Col);
-                List<Move> matchingMoves;
-
-                lock (_boardLock)
+                if (!TryApplyLocalMove(candidateMove, out var resolvedMove))
                 {
-                    matchingMoves = MoveGenerator
-                        .GenerateLegalMoves(_board)
-                        .Where(m =>
-                            m.FromRow == candidateMove.FromRow &&
-                            m.FromCol == candidateMove.FromCol &&
-                            m.ToRow == candidateMove.ToRow &&
-                            m.ToCol == candidateMove.ToCol)
-                        .ToList();
-                }
-
-                if (matchingMoves.Count > 0)
-                {
-                    // Prefer queen promotion until a promotion picker is added.
-                    var selectedMove = matchingMoves.FirstOrDefault(m => m.Promotion == PieceType.Queen, matchingMoves[0]);
-                    var resolvedMove = selectedMove.Promotion == PieceType.None
-                        ? selectedMove
-                        : new Move(
-                            selectedMove.FromRow,
-                            selectedMove.FromCol,
-                            selectedMove.ToRow,
-                            selectedMove.ToCol,
-                            PieceType.Queen);
-
-                    lock (_boardLock)
-                    {
-                        _board.MakeMove(resolvedMove);
-                    }
-
-                    RefreshBoard();
                     Deselect();
-                    UpdateStatus();
-
-                    if (_isVsAI && !IsGameOver && IsBlackTurn())
-                    {
-                        await PerformAIMove();
-                    }
-                }
-                else
-                {
-                    // Invalid move, select new piece if friendly
-                    Deselect();
-                    if (!clickedSquare.Piece.IsEmpty && clickedSquare.Piece.Color == _board.Turn)
+                    if (!clickedSquare.Piece.IsEmpty && clickedSquare.Piece.Color == CurrentTurn())
                     {
                         OnSquareClick(clickedSquare);
                     }
+                    return;
+                }
+
+                RefreshBoard();
+                Deselect();
+                UpdateStatus();
+
+                if (_peer is not null)
+                {
+                    await _peer.SendMoveAsync(resolvedMove);
+                    if (IsGameOver)
+                    {
+                        await _peer.SendGameEndAsync(StatusMessage);
+                    }
+                    return;
+                }
+
+                if (_isVsAI && !IsGameOver && IsBlackTurn())
+                {
+                    await PerformAIMove();
                 }
             }
         }
+    }
+
+    private bool TryApplyLocalMove(Move candidateMove, out Move resolvedMove)
+    {
+        resolvedMove = default;
+        List<Move> matchingMoves;
+        lock (_boardLock)
+        {
+            matchingMoves = FindMatchingMoves(candidateMove);
+            if (matchingMoves.Count == 0)
+            {
+                return false;
+            }
+
+            resolvedMove = PreferQueenPromotion(matchingMoves);
+            _board.MakeMove(resolvedMove);
+            return true;
+        }
+    }
+
+    private void ApplyIncomingMove(Move incoming)
+    {
+        if (IsGameOver)
+        {
+            return;
+        }
+
+        lock (_boardLock)
+        {
+            var matchingMoves = FindMatchingMoves(incoming);
+            if (matchingMoves.Count == 0)
+            {
+                StatusMessage = "Desync détecté: coup adverse illégal.";
+                IsGameOver = true;
+                return;
+            }
+
+            var resolved = incoming.Promotion != PieceType.None
+                ? incoming
+                : PreferQueenPromotion(matchingMoves);
+            _board.MakeMove(resolved);
+        }
+
+        Deselect();
+        RefreshBoard();
+        UpdateStatus();
+    }
+
+    private List<Move> FindMatchingMoves(Move candidateMove)
+    {
+        return MoveGenerator
+            .GenerateLegalMoves(_board)
+            .Where(m =>
+                m.FromRow == candidateMove.FromRow &&
+                m.FromCol == candidateMove.FromCol &&
+                m.ToRow == candidateMove.ToRow &&
+                m.ToCol == candidateMove.ToCol &&
+                (candidateMove.Promotion == PieceType.None || m.Promotion == candidateMove.Promotion))
+            .ToList();
+    }
+
+    private static Move PreferQueenPromotion(List<Move> matchingMoves)
+    {
+        var selectedMove = matchingMoves.FirstOrDefault(m => m.Promotion == PieceType.Queen, matchingMoves[0]);
+        return selectedMove.Promotion == PieceType.None
+            ? selectedMove
+            : new Move(selectedMove.FromRow, selectedMove.FromCol, selectedMove.ToRow, selectedMove.ToCol, PieceType.Queen);
     }
 
     private void HighlightLegalMoves(SquareViewModel startSquare)
@@ -205,28 +295,29 @@ public partial class GameViewModel : ObservableObject
 
         if (!hasMoves)
         {
-            if (inCheck)
-            {
-                StatusMessage = IsWhiteTurn ? "Checkmate - Black wins" : "Checkmate - White wins";
-            }
-            else
-            {
-                StatusMessage = "Stalemate";
-            }
-
+            StatusMessage = inCheck
+                ? (IsWhiteTurn ? "Checkmate - Black wins" : "Checkmate - White wins")
+                : "Stalemate";
             return;
         }
 
-        StatusMessage = inCheck
+        var turnLabel = inCheck
             ? (IsWhiteTurn ? "White to move - Check" : "Black to move - Check")
             : (IsWhiteTurn ? "White's Turn" : "Black's Turn");
+
+        if (_peer is not null)
+        {
+            turnLabel += turn == LocalColor ? " — your move" : $" — waiting for {OpponentName}";
+        }
+
+        StatusMessage = turnLabel;
     }
 
     private async Task PerformAIMove()
     {
         IsBusy = true;
         StatusMessage = "AI Thinking...";
-        await Task.Delay(100); // UI Refresh
+        await Task.Delay(100);
 
         Board boardSnapshot;
         lock (_boardLock)
@@ -249,12 +340,76 @@ public partial class GameViewModel : ObservableObject
         IsBusy = false;
     }
 
-    private bool IsBlackTurn()
+    private PieceColor CurrentTurn()
     {
         lock (_boardLock)
         {
-            return _board.Turn == PieceColor.Black;
+            return _board.Turn;
         }
+    }
+
+    private bool IsBlackTurn()
+    {
+        return CurrentTurn() == PieceColor.Black;
+    }
+
+    private void OnPeerMove(Move move) => RunOnUi(() => ApplyIncomingMove(move));
+
+    private void OnPeerGameEnded(string reason) => RunOnUi(() =>
+    {
+        if (!IsGameOver)
+        {
+            IsGameOver = true;
+        }
+        StatusMessage = reason;
+    });
+
+    private void OnPeerDisconnected(string reason) => RunOnUi(() =>
+    {
+        if (IsGameOver)
+        {
+            return;
+        }
+
+        IsGameOver = true;
+        StatusMessage = reason;
+    });
+
+    private void OnPeerLatency(double milliseconds) => RunOnUi(() =>
+    {
+        LatencyLabel = $"sync {milliseconds:0.0} ms";
+    });
+
+    private static void RunOnUi(Action action)
+    {
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher is not null && !dispatcher.CheckAccess())
+        {
+            dispatcher.Invoke(action);
+            return;
+        }
+
+        action();
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        if (_peer is null)
+        {
+            return;
+        }
+
+        _peer.MoveReceived -= OnPeerMove;
+        _peer.GameEnded -= OnPeerGameEnded;
+        _peer.Disconnected -= OnPeerDisconnected;
+        _peer.MoveAcknowledgedMs -= OnPeerLatency;
+        _peer.Dispose();
     }
 }
 
