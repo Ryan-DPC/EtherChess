@@ -50,6 +50,26 @@ Or:
 dotnet run --project EtherChess.csproj -- --dev
 ```
 
+### Test P2P with two local instances
+
+1. Terminal 1 (host, white):
+
+```powershell
+.\run-dev-host.ps1
+```
+
+Click **Host** on port `5555`.
+
+2. Terminal 2 (guest, black):
+
+```powershell
+.\run-dev-join.ps1
+```
+
+Click **Join** with `127.0.0.1` and port `5555`.
+
+Do not click **Host** on both instances — only the first one hosts.
+
 ### Launch with Ether context
 
 Set these environment variables before starting the app:

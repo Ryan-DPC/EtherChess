@@ -25,6 +25,7 @@ public partial class App : Application
 
         // Fallback to args if env vars are missing
         bool isDev = false;
+        string? devName = null;
         for (int i = 0; i < e.Args.Length; i++)
         {
             if (string.IsNullOrEmpty(userJson) && e.Args[i] == "--user" && i + 1 < e.Args.Length)
@@ -33,12 +34,15 @@ public partial class App : Application
                 token = e.Args[i + 1];
             if (e.Args[i] == "--dev")
                 isDev = true;
+            if ((e.Args[i] == "--name" || e.Args[i] == "--player") && i + 1 < e.Args.Length)
+                devName = e.Args[i + 1];
         }
 
         if (isDev && (string.IsNullOrEmpty(userJson) || string.IsNullOrEmpty(token)))
         {
-            Log("Dev mode enabled. Using dummy credentials.");
-            userJson = "{\"username\": \"DevUser\", \"elo\": 1500}";
+            var username = string.IsNullOrWhiteSpace(devName) ? "DevUser" : devName.Trim();
+            Log($"Dev mode enabled. Using dummy credentials for {username}.");
+            userJson = $"{{\"username\": \"{username}\", \"elo\": 1500}}";
             token = "dev-token";
         }
 

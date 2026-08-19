@@ -76,11 +76,13 @@
                 <StackPanel>
                     <TextBlock Text="♟️ Peer to Peer" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,8"/>
                     <TextBlock Text="{Binding MultiplayerStatus}" Foreground="#AAAAAA" TextWrapping="Wrap" FontSize="12" Margin="0,0,0,10"/>
+                    <TextBlock Text="Instance 1 — Host (Blanc)" Foreground="#81B64C" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"/>
                     <DockPanel Margin="0,0,0,8">
                         <TextBlock Text="Port" Foreground="#888" VerticalAlignment="Center" Width="40"/>
                         <TextBox Text="{Binding HostPort, UpdateSourceTrigger=PropertyChanged}" Width="70" Margin="0,0,8,0"/>
                         <Button Content="Host" Command="{Binding HostGameCommand}" Padding="10,4" Background="#81B64C" Foreground="White" BorderThickness="0"/>
                     </DockPanel>
+                    <TextBlock Text="Instance 2 — Join (Noir)" Foreground="#4C8FB6" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"/>
                     <DockPanel Margin="0,0,0,8">
                         <TextBox Text="{Binding JoinHost, UpdateSourceTrigger=PropertyChanged}" Width="110" Margin="0,0,6,0"/>
                         <TextBox Text="{Binding JoinPort, UpdateSourceTrigger=PropertyChanged}" Width="60" Margin="0,0,8,0"/>

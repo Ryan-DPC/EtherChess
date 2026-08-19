@@ -4,6 +4,7 @@ using EtherChess.Engine;
 using EtherChess.Network;
 using System.Collections.ObjectModel;
 using System.Net;
+using System.Net.Sockets;
 using System.Windows;
 
 namespace EtherChess.ViewModels;
@@ -42,7 +43,7 @@ public partial class DashboardViewModel : ObservableObject
     private int _joinPort = 5555;
 
     [ObservableProperty]
-    private string _multiplayerStatus = "Host a local peer or join an IP:port.";
+    private string _multiplayerStatus = "Test local : instance 1 = Host, instance 2 = Join.";
 
     [ObservableProperty]
     private bool _isWaitingForOpponent;
@@ -62,17 +63,19 @@ public partial class DashboardViewModel : ObservableObject
         _mainViewModel.CurrentView = new GameViewModel(Username, isVsAI: true, difficulty: SelectedDifficulty);
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanStartPeerAction))]
     private async Task HostGameAsync()
     {
         await ConnectPeerAsync(isHost: true);
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanStartPeerAction))]
     private async Task JoinGameAsync()
     {
         await ConnectPeerAsync(isHost: false);
     }
+
+    private bool CanStartPeerAction() => !IsWaitingForOpponent;
 
     [RelayCommand]
     private void CancelLobby()
@@ -82,6 +85,8 @@ public partial class DashboardViewModel : ObservableObject
         _pendingSession = null;
         IsWaitingForOpponent = false;
         MultiplayerStatus = "Connexion P2P annulée.";
+        HostGameCommand.NotifyCanExecuteChanged();
+        JoinGameCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand]
@@ -109,9 +114,11 @@ public partial class DashboardViewModel : ObservableObject
         _lobbyCts = new CancellationTokenSource();
         _pendingSession = new PeerSession();
         IsWaitingForOpponent = true;
+        HostGameCommand.NotifyCanExecuteChanged();
+        JoinGameCommand.NotifyCanExecuteChanged();
         MultiplayerStatus = isHost
-            ? $"En attente d'un adversaire sur le port {HostPort}..."
-            : $"Connexion à {JoinHost}:{JoinPort}...";
+            ? $"En attente d'un adversaire sur le port {HostPort}... (Blanc)"
+            : $"Connexion à {JoinHost}:{JoinPort}... (Noir)";
 
         try
         {
@@ -134,6 +141,13 @@ public partial class DashboardViewModel : ObservableObject
         {
             MultiplayerStatus = "Connexion P2P annulée.";
         }
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
+        {
+            MultiplayerStatus =
+                $"Le port {HostPort} est déjà pris. Sur la 2e instance, cliquez Join (127.0.0.1:{HostPort}), pas Host.";
+            _pendingSession?.Dispose();
+            _pendingSession = null;
+        }
         catch (Exception ex)
         {
             MultiplayerStatus = $"Erreur P2P: {ex.Message}";
@@ -143,6 +157,8 @@ public partial class DashboardViewModel : ObservableObject
         finally
         {
             IsWaitingForOpponent = false;
+            HostGameCommand.NotifyCanExecuteChanged();
+            JoinGameCommand.NotifyCanExecuteChanged();
         }
     }
 }

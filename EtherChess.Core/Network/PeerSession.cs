@@ -60,6 +60,7 @@ public sealed class PeerSession : IDisposable
         });
 
         _client = await _listener.AcceptTcpClientAsync(_cts.Token);
+        StopListener();
         ConfigureSocket(_client);
         SetupStreams();
         await CompleteHostHandshakeAsync(elo);
@@ -129,7 +130,7 @@ public sealed class PeerSession : IDisposable
         IsConnected = false;
 
         try { _cts?.Cancel(); } catch { }
-        try { _listener?.Stop(); } catch { }
+        StopListener();
         try { _client?.Close(); } catch { }
         try { _reader?.Dispose(); } catch { }
         try { _writer?.Dispose(); } catch { }
@@ -327,6 +328,17 @@ public sealed class PeerSession : IDisposable
     {
         var elapsed = Stopwatch.GetElapsedTime(timestamp);
         return elapsed.TotalMilliseconds;
+    }
+
+    private void StopListener()
+    {
+        if (_listener is null)
+        {
+            return;
+        }
+
+        try { _listener.Stop(); } catch { }
+        _listener = null;
     }
 
     private void ThrowIfDisposed()
