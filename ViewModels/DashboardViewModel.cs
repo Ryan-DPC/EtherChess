@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EtherChess.Engine;
+using EtherChess.Models;
 using EtherChess.Network;
 using System.Collections.ObjectModel;
 using System.Net;
@@ -25,10 +26,7 @@ public partial class DashboardViewModel : ObservableObject
     private int _puzzlesSolved;
 
     [ObservableProperty]
-    private string _winRate = "0%";
-
-    [ObservableProperty]
-    private ObservableCollection<GameHistoryItem> _recentGames = new();
+    private string _winRate = "—";
 
     [ObservableProperty]
     private ChessAI.Difficulty _selectedDifficulty = ChessAI.Difficulty.Medium;
@@ -48,6 +46,8 @@ public partial class DashboardViewModel : ObservableObject
     [ObservableProperty]
     private bool _isWaitingForOpponent;
 
+    public System.Collections.ObjectModel.ObservableCollection<GameHistoryItem> RecentGames => _mainViewModel.RecentGames;
+
     public ObservableCollection<ChessAI.Difficulty> Difficulties { get; } = new(Enum.GetValues<ChessAI.Difficulty>());
 
     public DashboardViewModel(MainViewModel mainViewModel)
@@ -55,12 +55,17 @@ public partial class DashboardViewModel : ObservableObject
         _mainViewModel = mainViewModel;
         Username = _mainViewModel.Username;
         Rating = _mainViewModel.Elo;
+        WinRate = _mainViewModel.WinRate;
     }
 
     [RelayCommand]
     private void PlayVsAI()
     {
-        _mainViewModel.CurrentView = new GameViewModel(Username, isVsAI: true, difficulty: SelectedDifficulty);
+        _mainViewModel.CurrentView = new GameViewModel(
+            _mainViewModel,
+            Username,
+            isVsAI: true,
+            difficulty: SelectedDifficulty);
     }
 
     [RelayCommand(CanExecute = nameof(CanStartPeerAction))]
@@ -135,7 +140,7 @@ public partial class DashboardViewModel : ObservableObject
             _pendingSession = null;
             IsWaitingForOpponent = false;
             MultiplayerStatus = $"Connecté à {session.OpponentUsername}.";
-            _mainViewModel.CurrentView = new GameViewModel(Username, isVsAI: false, peer: session);
+            _mainViewModel.CurrentView = new GameViewModel(_mainViewModel, Username, isVsAI: false, peer: session);
         }
         catch (OperationCanceledException)
         {
@@ -161,13 +166,4 @@ public partial class DashboardViewModel : ObservableObject
             JoinGameCommand.NotifyCanExecuteChanged();
         }
     }
-}
-
-public class GameHistoryItem
-{
-    public string Opponent { get; set; } = "";
-    public int Rating { get; set; }
-    public string Result { get; set; } = "";
-    public int Moves { get; set; }
-    public string Date { get; set; } = "";
 }

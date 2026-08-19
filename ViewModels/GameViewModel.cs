@@ -13,12 +13,14 @@ namespace EtherChess.ViewModels;
 
 public partial class GameViewModel : ObservableObject, IDisposable
 {
+    private readonly MainViewModel _mainViewModel;
     private readonly Board _board;
     private readonly ChessAI _ai;
     private readonly bool _isVsAI;
     private readonly PeerSession? _peer;
     private readonly object _boardLock = new();
     private bool _disposed;
+    private bool _recordedResult;
 
     [ObservableProperty]
     private ObservableCollection<SquareViewModel> _squares;
@@ -35,10 +37,10 @@ public partial class GameViewModel : ObservableObject, IDisposable
     private string _username = string.Empty;
 
     [ObservableProperty]
-    private string _opponentName = "AI";
+    private string _opponentName = "IA";
 
     [ObservableProperty]
-    private string _colorLabel = "White";
+    private string _colorLabel = "Blancs";
 
     [ObservableProperty]
     private ChessAI.Difficulty _difficulty = ChessAI.Difficulty.Medium;
@@ -50,32 +52,45 @@ public partial class GameViewModel : ObservableObject, IDisposable
     private bool _isGameOver;
 
     [ObservableProperty]
-    private string _latencyLabel = "";
+    private string _gameOverTitle = "";
 
     [ObservableProperty]
-    private string _whiteName = "White";
+    private string _gameOverDetail = "";
 
     [ObservableProperty]
-    private string _blackName = "Black";
+    private bool _isPeerLag;
+
+    [ObservableProperty]
+    private string _whiteName = "Blancs";
+
+    [ObservableProperty]
+    private string _blackName = "Noirs";
 
     [ObservableProperty]
     private ObservableCollection<string> _moveHistory = new();
 
     public PieceColor LocalColor { get; }
+    public bool ShowConnectionStatus => _peer is not null;
+    public bool IsPeerConnected => _peer?.IsConnected == true;
+    public bool IsPeerThinking => _peer is not null && !IsGameOver && !IsMyTurn && !IsBusy;
+    public bool IsAiThinking => _isVsAI && IsBusy;
+    public bool IsMyTurn => !IsGameOver && CurrentTurn() == LocalColor;
 
     public GameViewModel(
+        MainViewModel mainViewModel,
         string username,
         bool isVsAI = true,
         ChessAI.Difficulty difficulty = ChessAI.Difficulty.Medium,
         PeerSession? peer = null)
     {
+        _mainViewModel = mainViewModel;
         Username = username;
         _peer = peer;
         _isVsAI = isVsAI && peer is null;
         Difficulty = difficulty;
         LocalColor = peer?.LocalColor ?? PieceColor.White;
-        ColorLabel = LocalColor == PieceColor.White ? "White" : "Black";
-        OpponentName = peer?.OpponentUsername ?? (_isVsAI ? $"AI ({difficulty})" : "Opponent");
+        ColorLabel = LocalColor == PieceColor.White ? "Blancs" : "Noirs";
+        OpponentName = peer?.OpponentUsername ?? (_isVsAI ? $"Bot ({difficulty})" : "Adversaire");
         WhiteName = LocalColor == PieceColor.White ? Username : OpponentName;
         BlackName = LocalColor == PieceColor.Black ? Username : OpponentName;
         _board = new Board();
@@ -85,6 +100,57 @@ public partial class GameViewModel : ObservableObject, IDisposable
         SubscribePeer();
         UpdateStatus();
     }
+
+    [RelayCommand]
+    private void Resign()
+    {
+        if (IsGameOver)
+        {
+            return;
+        }
+
+        if (_peer is not null)
+        {
+            _ = _peer.SendResignAsync();
+        }
+
+        FinalizeGameOver("Défaite", "Vous avez abandonné.");
+    }
+
+    [RelayCommand]
+    private void BackToMenu() => _mainViewModel.NavigateToDashboard();
+
+    [RelayCommand(CanExecute = nameof(CanReplay))]
+    private void Replay()
+    {
+        _board.SetupStartingPosition();
+        _recordedResult = false;
+        IsGameOver = false;
+        GameOverTitle = "";
+        GameOverDetail = "";
+        MoveHistory.Clear();
+        Deselect();
+        foreach (var square in Squares)
+        {
+            square.IsLastMove = false;
+        }
+
+        RefreshBoard();
+        UpdateStatus();
+        ReplayCommand.NotifyCanExecuteChanged();
+
+        if (_isVsAI && IsBlackTurn())
+        {
+            _ = PerformAIMove();
+        }
+    }
+
+    [RelayCommand]
+    private void QuitAfterGame() => _mainViewModel.NavigateToDashboard();
+
+    private bool CanReplay() => IsGameOver;
+
+    partial void OnIsGameOverChanged(bool value) => ReplayCommand.NotifyCanExecuteChanged();
 
     private void SubscribePeer()
     {
@@ -97,6 +163,8 @@ public partial class GameViewModel : ObservableObject, IDisposable
         _peer.GameEnded += OnPeerGameEnded;
         _peer.Disconnected += OnPeerDisconnected;
         _peer.MoveAcknowledgedMs += OnPeerLatency;
+        OnPropertyChanged(nameof(ShowConnectionStatus));
+        OnPropertyChanged(nameof(IsPeerConnected));
         _ = _peer.SendPingAsync();
     }
 
@@ -171,8 +239,9 @@ public partial class GameViewModel : ObservableObject, IDisposable
                     await _peer.SendMoveAsync(resolvedMove);
                     if (IsGameOver)
                     {
-                        await _peer.SendGameEndAsync(StatusMessage);
+                        await _peer.SendGameEndAsync(GameOverDetail);
                     }
+                    OnPropertyChanged(nameof(IsPeerThinking));
                     return;
                 }
 
@@ -215,8 +284,7 @@ public partial class GameViewModel : ObservableObject, IDisposable
             var matchingMoves = FindMatchingMoves(incoming);
             if (matchingMoves.Count == 0)
             {
-                StatusMessage = "Desync détecté: coup adverse illégal.";
-                IsGameOver = true;
+                FinalizeGameOver("Défaite", "Désynchronisation détectée.");
                 return;
             }
 
@@ -231,6 +299,7 @@ public partial class GameViewModel : ObservableObject, IDisposable
         MarkLastMove(resolved);
         RecordMove(resolved);
         UpdateStatus();
+        OnPropertyChanged(nameof(IsPeerThinking));
     }
 
     private List<Move> FindMatchingMoves(Move candidateMove)
@@ -264,11 +333,20 @@ public partial class GameViewModel : ObservableObject, IDisposable
 
         foreach (var move in moves)
         {
-            if (move.FromRow == startSquare.Row && move.FromCol == startSquare.Col)
+            if (move.FromRow != startSquare.Row || move.FromCol != startSquare.Col)
             {
-                var target = Squares.FirstOrDefault(s => s.Row == move.ToRow && s.Col == move.ToCol);
-                if (target != null) target.IsLegalMove = true;
+                continue;
             }
+
+            var target = Squares.FirstOrDefault(s => s.Row == move.ToRow && s.Col == move.ToCol);
+            if (target == null)
+            {
+                continue;
+            }
+
+            var captured = !_board.GetPiece(move.ToRow, move.ToCol).IsEmpty;
+            target.IsLegalMove = true;
+            target.IsCaptureMove = captured;
         }
     }
 
@@ -279,7 +357,12 @@ public partial class GameViewModel : ObservableObject, IDisposable
             _selectedSquare.IsSelected = false;
             _selectedSquare = null;
         }
-        foreach (var s in Squares) s.IsLegalMove = false;
+
+        foreach (var s in Squares)
+        {
+            s.IsLegalMove = false;
+            s.IsCaptureMove = false;
+        }
     }
 
     private void RefreshBoard()
@@ -307,32 +390,52 @@ public partial class GameViewModel : ObservableObject, IDisposable
         }
 
         IsWhiteTurn = turn == PieceColor.White;
-        IsGameOver = !hasMoves;
 
         if (!hasMoves)
         {
-            StatusMessage = inCheck
-                ? (IsWhiteTurn ? "Checkmate - Black wins" : "Checkmate - White wins")
-                : "Stalemate";
+            if (inCheck)
+            {
+                var winner = turn == PieceColor.White ? PieceColor.Black : PieceColor.White;
+                var playerWon = winner == LocalColor;
+                FinalizeGameOver(
+                    playerWon ? "Victoire" : "Défaite",
+                    playerWon ? "Échec et mat !" : "Échec et mat.");
+            }
+            else
+            {
+                FinalizeGameOver("Nulle", "Pat — match nul.");
+            }
+
             return;
         }
 
-        var turnLabel = inCheck
-            ? (IsWhiteTurn ? "White to move - Check" : "Black to move - Check")
-            : (IsWhiteTurn ? "White's Turn" : "Black's Turn");
-
-        if (_peer is not null)
+        if (IsBusy && _isVsAI)
         {
-            turnLabel += turn == LocalColor ? " — your move" : $" — waiting for {OpponentName}";
+            StatusMessage = "L'IA réfléchit…";
+        }
+        else if (_peer is not null && turn != LocalColor)
+        {
+            StatusMessage = "Tour adversaire";
+        }
+        else if (inCheck)
+        {
+            StatusMessage = "Échec — à vous de jouer";
+        }
+        else
+        {
+            StatusMessage = "À vous de jouer";
         }
 
-        StatusMessage = turnLabel;
+        OnPropertyChanged(nameof(IsMyTurn));
+        OnPropertyChanged(nameof(IsPeerThinking));
+        OnPropertyChanged(nameof(IsAiThinking));
     }
 
     private async Task PerformAIMove()
     {
         IsBusy = true;
-        StatusMessage = "AI Thinking...";
+        StatusMessage = "L'IA réfléchit…";
+        OnPropertyChanged(nameof(IsAiThinking));
         await Task.Delay(100);
 
         Board boardSnapshot;
@@ -354,8 +457,47 @@ public partial class GameViewModel : ObservableObject, IDisposable
         RefreshBoard();
         MarkLastMove(bestMove);
         RecordMove(bestMove);
-        UpdateStatus();
         IsBusy = false;
+        UpdateStatus();
+    }
+
+    private void FinalizeGameOver(string title, string detail)
+    {
+        if (IsGameOver && _recordedResult)
+        {
+            return;
+        }
+
+        IsGameOver = true;
+        GameOverTitle = title;
+        GameOverDetail = detail;
+        StatusMessage = detail;
+        RecordGameResult(title);
+    }
+
+    private void RecordGameResult(string title)
+    {
+        if (_recordedResult)
+        {
+            return;
+        }
+
+        _recordedResult = true;
+        var playerWon = title == "Victoire";
+        var isDraw = title == "Nulle";
+
+        _mainViewModel.RecordGame(new GameHistoryItem
+        {
+            Opponent = OpponentName,
+            Rating = _isVsAI ? 0 : _mainViewModel.Elo,
+            Result = title,
+            Moves = MoveHistory.Count,
+            Date = DateTime.Now.ToString("dd/MM/yyyy HH:mm"),
+            PlayerWon = playerWon,
+            IsDraw = isDraw,
+            IsVsBot = _isVsAI,
+            CountsForRating = !_isVsAI
+        });
     }
 
     private void MarkLastMove(Move move)
@@ -391,36 +533,36 @@ public partial class GameViewModel : ObservableObject, IDisposable
         }
     }
 
-    private bool IsBlackTurn()
-    {
-        return CurrentTurn() == PieceColor.Black;
-    }
+    private bool IsBlackTurn() => CurrentTurn() == PieceColor.Black;
 
     private void OnPeerMove(Move move) => RunOnUi(() => ApplyIncomingMove(move));
 
     private void OnPeerGameEnded(string reason) => RunOnUi(() =>
     {
-        if (!IsGameOver)
-        {
-            IsGameOver = true;
-        }
-        StatusMessage = reason;
-    });
-
-    private void OnPeerDisconnected(string reason) => RunOnUi(() =>
-    {
-        if (IsGameOver)
+        if (_recordedResult)
         {
             return;
         }
 
-        IsGameOver = true;
-        StatusMessage = reason;
+        var title = reason.Contains("abandon", StringComparison.OrdinalIgnoreCase) ? "Victoire" : "Fin de partie";
+        FinalizeGameOver(title, reason);
+    });
+
+    private void OnPeerDisconnected(string reason) => RunOnUi(() =>
+    {
+        if (_recordedResult)
+        {
+            return;
+        }
+
+        IsPeerLag = false;
+        OnPropertyChanged(nameof(IsPeerConnected));
+        FinalizeGameOver("Victoire", "L'adversaire s'est déconnecté.");
     });
 
     private void OnPeerLatency(double milliseconds) => RunOnUi(() =>
     {
-        LatencyLabel = $"sync {milliseconds:0.0} ms";
+        IsPeerLag = milliseconds > 500;
     });
 
     private static void RunOnUi(Action action)
@@ -463,17 +605,23 @@ public partial class SquareViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DisplaySymbol))]
+    [NotifyPropertyChangedFor(nameof(IsLegalMoveEmpty))]
     private Piece _piece;
 
     [ObservableProperty]
     private bool _isSelected;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLegalMoveEmpty))]
     private bool _isLegalMove;
+
+    [ObservableProperty]
+    private bool _isCaptureMove;
 
     [ObservableProperty]
     private bool _isLastMove;
 
+    public bool IsLegalMoveEmpty => IsLegalMove && !IsCaptureMove;
     public bool IsDarkSquare => (Row + Col) % 2 != 0;
     public string FileLabel => Row == 7 ? ((char)('a' + Col)).ToString() : "";
     public string RankLabel => Col == 0 ? (8 - Row).ToString() : "";

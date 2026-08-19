@@ -155,6 +155,7 @@
                         <TextBlock Text="Win Rate" Foreground="#888" Width="100"/>
                         <TextBlock Text="{Binding WinRate}" Foreground="White" FontWeight="Bold"/>
                     </StackPanel>
+                    <TextBlock Text="(hors parties bot)" Foreground="#666" FontSize="11" Margin="0,6,0,0"/>
                 </StackPanel>
             </Border>
         </StackPanel>
