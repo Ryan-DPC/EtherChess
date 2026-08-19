@@ -65,6 +65,22 @@ dotnet run
 ./build.ps1
 ```
 
+## Install on Windows at D:\ProjetsLocaux
+
+From PowerShell on your PC:
+
+```powershell
+git clone --branch cursor/audit-remediation-bea0 https://github.com/Ryan-DPC/EtherChess.git D:\ProjetsLocaux\EtherChess
+cd D:\ProjetsLocaux\EtherChess
+dotnet run -- --dev
+```
+
+Or use the helper script:
+
+```powershell
+.\scripts\install-to-projets-locaux.ps1
+```
+
 ## Project structure
 
 - `EtherChess.Core/`: chess rules, AI, and P2P transport
