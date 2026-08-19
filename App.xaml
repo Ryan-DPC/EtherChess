@@ -5,5 +5,9 @@
              xmlns:converters="clr-namespace:EtherChess.Converters">
     <Application.Resources>
         <converters:BooleanToColorConverter x:Key="BooleanToColorConverter"/>
+        <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+        <converters:BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <converters:ConnectionStatusBrushConverter x:Key="ConnectionStatusBrush"/>
     </Application.Resources>
 </Application>

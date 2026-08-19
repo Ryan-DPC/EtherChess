@@ -3,59 +3,216 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:local="clr-namespace:EtherChess"
-             xmlns:vm="clr-namespace:EtherChess.ViewModels"
              mc:Ignorable="d"
-             d:DesignHeight="800" d:DesignWidth="800">
-    
-    <Grid Background="#312e2b">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+             d:DesignHeight="800" d:DesignWidth="1100"
+             Background="#1e1c1a">
 
-        <!-- Status Bar -->
-        <!-- Status Bar -->
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="20">
-             <TextBlock Text="{Binding Username}" Foreground="#AAAAAA" FontSize="24" Margin="0,0,20,0" FontWeight="Bold"/>
-             <TextBlock Text="{Binding StatusMessage}" Foreground="White" FontSize="24"/>
-        </StackPanel>
+    <UserControl.Resources>
+        <Style x:Key="OverlayButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#444"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="18,10"/>
+            <Setter Property="Margin" Value="6,0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Opacity" Value="0.85"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
 
-        <!-- Chess Board -->
-        <ItemsControl Grid.Row="1" ItemsSource="{Binding Squares}" Width="600" Height="600">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <UniformGrid Rows="8" Columns="8"/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Button Command="{Binding Command}" CommandParameter="{Binding}"
-                            BorderThickness="0">
-                        <Button.Style>
-                            <Style TargetType="Button">
-                                <Setter Property="Background" Value="#eeeed2"/> <!-- Light Square -->
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsDarkSquare}" Value="True">
-                                        <Setter Property="Background" Value="#769656"/> <!-- Dark Square -->
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                        <Setter Property="Background" Value="#baca44"/> <!-- Selected -->
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsLegalMove}" Value="True">
-                                        <Setter Property="Background" Value="#f6f669"/> <!-- Legal Move Hint (Yellowish) -->
-                                        <Setter Property="Opacity" Value="0.8"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                        <TextBlock Text="{Binding DisplaySymbol}" 
-                                   FontSize="48" 
-                                   Foreground="{Binding Piece.IsWhite, Converter={StaticResource BooleanToColorConverter}}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Button>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid MinHeight="600">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="320"/>
+                    <ColumnDefinition Width="220" MinWidth="180"/>
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0" Margin="24,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*" MinHeight="360"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Status compact avec icônes -->
+                    <Border Grid.Row="0" Background="#2D2B29" CornerRadius="10" Padding="12,10" Margin="0,0,0,12">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse Width="10" Height="10" Margin="0,0,6,0"
+                                     Fill="{Binding IsPeerConnected, Converter={StaticResource ConnectionStatusBrush}}"
+                                     Visibility="{Binding ShowConnectionStatus, Converter={StaticResource BoolToVis}}"/>
+                            <Ellipse Width="10" Height="10" Fill="#E58B4A" Margin="0,0,6,0"
+                                     Visibility="{Binding IsPeerLag, Converter={StaticResource BoolToVis}}"/>
+                            <Ellipse Width="10" Height="10" Fill="#4C8FB6" Margin="0,0,6,0"
+                                     Visibility="{Binding IsPeerThinking, Converter={StaticResource BoolToVis}}"/>
+                            <Ellipse Width="10" Height="10" Fill="#4C8FB6" Margin="0,0,6,0"
+                                     Visibility="{Binding IsAiThinking, Converter={StaticResource BoolToVis}}"/>
+                            <TextBlock Text="{Binding StatusMessage}" Foreground="#ddd" FontSize="13"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Viewbox Grid.Row="1" Stretch="Uniform" MaxWidth="640" MaxHeight="640"
+                             HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Grid Width="640" Height="640">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0" CornerRadius="10" Padding="12,8" Margin="0,0,0,8"
+                                    Background="#2D2B29" BorderThickness="2">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsWhiteTurn}" Value="False">
+                                                <Setter Property="BorderBrush" Value="#81B64C"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="♚" FontSize="22" Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding BlackName}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="1" CornerRadius="8" ClipToBounds="True"
+                                    BorderBrush="#111" BorderThickness="6">
+                                <ItemsControl ItemsSource="{Binding Squares}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Rows="8" Columns="8"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Command="{Binding Command}" CommandParameter="{Binding}"
+                                                    BorderThickness="0" FontWeight="Bold" Padding="0">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Grid>
+                                                            <Border Background="#f0d9b5"/>
+                                                            <Border Background="#b58863">
+                                                                <Border.Style>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsDarkSquare}" Value="True">
+                                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Border.Style>
+                                                            </Border>
+                                                            <Border Background="#cdd26a" Opacity="0.55"
+                                                                    Visibility="{Binding IsLastMove, Converter={StaticResource BoolToVis}}"/>
+                                                            <Border Background="#f6f669" Opacity="0.45"
+                                                                    Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}"/>
+                                                            <Ellipse Width="16" Height="16" Fill="#CC000000"
+                                                                     HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                     Visibility="{Binding IsLegalMoveEmpty, Converter={StaticResource BoolToVis}}"/>
+                                                            <Ellipse Width="52" Height="52" Stroke="#CC000000" StrokeThickness="5" Fill="Transparent"
+                                                                     HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                     Visibility="{Binding IsCaptureMove, Converter={StaticResource BoolToVis}}"/>
+                                                            <TextBlock Text="{Binding RankLabel}" FontSize="10" Margin="3,1,0,0"
+                                                                       HorizontalAlignment="Left" VerticalAlignment="Top" Opacity="0.65"
+                                                                       Foreground="{Binding Piece.IsWhite, Converter={StaticResource BooleanToColorConverter}}"/>
+                                                            <TextBlock Text="{Binding DisplaySymbol}" FontSize="46"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                       Foreground="{Binding Piece.IsWhite, Converter={StaticResource BooleanToColorConverter}}">
+                                                                <TextBlock.Effect>
+                                                                    <DropShadowEffect BlurRadius="6" ShadowDepth="1" Opacity="0.45"/>
+                                                                </TextBlock.Effect>
+                                                            </TextBlock>
+                                                            <TextBlock Text="{Binding FileLabel}" FontSize="10" Margin="0,0,3,1"
+                                                                       HorizontalAlignment="Right" VerticalAlignment="Bottom" Opacity="0.65"/>
+                                                        </Grid>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+
+                            <Border Grid.Row="2" CornerRadius="10" Padding="12,8" Margin="0,8,0,0"
+                                    Background="#2D2B29" BorderThickness="2">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsWhiteTurn}" Value="True">
+                                                <Setter Property="BorderBrush" Value="#81B64C"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="♔" FontSize="22" Margin="0,0,8,0" Foreground="White"/>
+                                    <TextBlock Text="{Binding WhiteName}" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Viewbox>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Content="Abandonner" Command="{Binding ResignCommand}"
+                                Style="{StaticResource OverlayButtonStyle}" Background="#8B3A3A"/>
+                        <Button Content="← Menu" Command="{Binding BackToMenuCommand}"
+                                Style="{StaticResource OverlayButtonStyle}"/>
+                    </StackPanel>
+                </Grid>
+
+                <Border Grid.Column="1" Background="#211F1D" Padding="16" Margin="0,16,16,16">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="Coups" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
+                        <TextBlock DockPanel.Dock="Bottom" Text="{Binding OpponentName, StringFormat='vs {0}'}" Foreground="#888" Margin="0,12,0,0"/>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding MoveHistory}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" Foreground="#ddd" FontFamily="Consolas" FontSize="13" Margin="0,0,0,6"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- Overlay fin de partie -->
+        <Border Background="#CC1e1c1a" Visibility="{Binding IsGameOver, Converter={StaticResource BoolToVis}}">
+            <Border Background="#2D2B29" CornerRadius="14" Padding="32,28" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="300">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="{Binding GameOverTitle}" Foreground="White" FontSize="28" FontWeight="Bold"
+                               HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                    <TextBlock Text="{Binding GameOverDetail}" Foreground="#aaa" FontSize="14"
+                               HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,24"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="Rejouer" Command="{Binding ReplayCommand}"
+                                Style="{StaticResource OverlayButtonStyle}" Background="#81B64C"/>
+                        <Button Content="Quitter" Command="{Binding QuitAfterGameCommand}"
+                                Style="{StaticResource OverlayButtonStyle}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
     </Grid>
 </UserControl>

@@ -6,11 +6,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <DefaultItemExcludes>$(DefaultItemExcludes);EtherChess.Core/**;EtherChess.P2PTest/**;EngineSmokeTests/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="SocketIOClient" Version="3.1.2" />
+    <ProjectReference Include="EtherChess.Core\EtherChess.Core.csproj" />
   </ItemGroup>
 
 </Project>
