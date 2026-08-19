@@ -41,7 +41,13 @@ This launches two local peers, plays a live opening including castling, then a S
 ### Launch in development mode
 
 ```powershell
-dotnet run -- --dev
+.\run-dev.ps1
+```
+
+Or:
+
+```powershell
+dotnet run --project EtherChess.csproj -- --dev
 ```
 
 ### Launch with Ether context
