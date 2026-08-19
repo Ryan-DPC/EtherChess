@@ -29,6 +29,9 @@ public partial class DashboardViewModel : ObservableObject
     private string _winRate = "—";
 
     [ObservableProperty]
+    private int _totalGames;
+
+    [ObservableProperty]
     private ChessAI.Difficulty _selectedDifficulty = ChessAI.Difficulty.Medium;
 
     [ObservableProperty]
@@ -56,6 +59,15 @@ public partial class DashboardViewModel : ObservableObject
         Username = _mainViewModel.Username;
         Rating = _mainViewModel.Elo;
         WinRate = _mainViewModel.WinRate;
+        TotalGames = _mainViewModel.Profile.TotalGames;
+    }
+
+    public void RefreshStats()
+    {
+        Rating = _mainViewModel.Elo;
+        WinRate = _mainViewModel.WinRate;
+        TotalGames = _mainViewModel.Profile.TotalGames;
+        OnPropertyChanged(nameof(RecentGames));
     }
 
     [RelayCommand]

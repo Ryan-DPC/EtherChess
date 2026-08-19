@@ -485,19 +485,35 @@ public partial class GameViewModel : ObservableObject, IDisposable
         _recordedResult = true;
         var playerWon = title == "Victoire";
         var isDraw = title == "Nulle";
+        var countsForRating = !_isVsAI;
+        var eloDelta = 0;
 
-        _mainViewModel.RecordGame(new GameHistoryItem
+        if (countsForRating)
         {
-            Opponent = OpponentName,
-            Rating = _isVsAI ? 0 : _mainViewModel.Elo,
-            Result = title,
-            Moves = MoveHistory.Count,
-            Date = DateTime.Now.ToString("dd/MM/yyyy HH:mm"),
-            PlayerWon = playerWon,
-            IsDraw = isDraw,
-            IsVsBot = _isVsAI,
-            CountsForRating = !_isVsAI
-        });
+            if (isDraw)
+            {
+                eloDelta = 0;
+            }
+            else if (playerWon)
+            {
+                eloDelta = 15;
+            }
+            else
+            {
+                eloDelta = -15;
+            }
+        }
+
+        _mainViewModel.ProfileService.RecordGame(
+            playerWon,
+            isDraw,
+            _isVsAI,
+            MoveHistory.Count,
+            OpponentName,
+            title,
+            eloDelta);
+
+        _mainViewModel.SyncFromProfile();
     }
 
     private void MarkLastMove(Move move)

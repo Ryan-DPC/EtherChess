@@ -1,13 +1,15 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EtherChess.Models;
+using EtherChess.Services;
 using System.Collections.ObjectModel;
-using System.Linq;
 
 namespace EtherChess.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
+    private readonly UserProfileService _profileService = new();
+
     [ObservableProperty]
     private object _currentView = null!;
 
@@ -23,12 +25,15 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _winRate = "—";
 
-    public ObservableCollection<GameHistoryItem> RecentGames { get; } = new();
+    public UserProfileService ProfileService => _profileService;
+    public UserProfile Profile => _profileService.Profile;
+    public ObservableCollection<GameHistoryItem> RecentGames => Profile.RecentGames;
 
     public string? AuthToken { get; private set; }
 
     public MainViewModel()
     {
+        SyncFromProfile();
         NavigateToDashboard();
     }
 
@@ -44,49 +49,50 @@ public partial class MainViewModel : ObservableObject
             dashboard.DisposeLobby();
         }
 
+        SyncFromProfile();
         CurrentView = new DashboardViewModel(this);
+        if (CurrentView is DashboardViewModel dashboard)
+        {
+            dashboard.RefreshStats();
+        }
     }
 
     public void RecordGame(GameHistoryItem item)
     {
-        RecentGames.Insert(0, item);
-
-        while (RecentGames.Count > 20)
-        {
-            RecentGames.RemoveAt(RecentGames.Count - 1);
-        }
-
+        var eloDelta = 0;
         if (item.CountsForRating)
         {
             if (item.IsDraw)
             {
-                // No ELO change on draw for now.
+                eloDelta = 0;
             }
             else if (item.PlayerWon)
             {
-                Elo += 15;
+                eloDelta = 15;
             }
             else
             {
-                Elo = Math.Max(100, Elo - 15);
+                eloDelta = -15;
             }
         }
 
-        UpdateWinRate();
+        _profileService.RecordGame(
+            item.PlayerWon,
+            item.IsDraw,
+            item.IsVsBot,
+            item.Moves,
+            item.Opponent,
+            item.Result,
+            eloDelta);
+
+        SyncFromProfile();
     }
 
-    private void UpdateWinRate()
+    public void SyncFromProfile()
     {
-        var rated = RecentGames.Where(g => g.CountsForRating).ToList();
-        if (rated.Count == 0)
-        {
-            WinRate = "—";
-            return;
-        }
-
-        var wins = rated.Count(g => g.PlayerWon);
-        var pct = (int)Math.Round(100.0 * wins / rated.Count);
-        WinRate = $"{pct}%";
+        Elo = Profile.Elo;
+        WinRate = Profile.WinRate;
+        OnPropertyChanged(nameof(RecentGames));
     }
 
     public void Initialize(string userJson, string token)
@@ -109,7 +115,7 @@ public partial class MainViewModel : ObservableObject
 
                 if (doc.RootElement.TryGetProperty("elo", out var eloProp))
                 {
-                    Elo = eloProp.GetInt32();
+                    Profile.Elo = eloProp.GetInt32();
                 }
             }
         }
@@ -119,6 +125,7 @@ public partial class MainViewModel : ObservableObject
             EtherChess.App.Log($"JSON Parse Error: {ex.Message}");
         }
 
+        SyncFromProfile();
         EtherChess.App.Log($"Initialized with user: {Username}, Elo: {Elo}");
 
         NavigateToDashboard();
